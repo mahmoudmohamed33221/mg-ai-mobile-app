@@ -23,12 +23,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Initialize Project & Web Assets
+      - name: Initialize Project & Sync Web Assets
         run: |
           npm init -y
           npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
-          mkdir -p www
-          echo "<html><head><title>MG.ai</title></head><body><h1>MG.ai CODER Mobile App</h1></body></html>" > www/index.html
           npx cap init MG-ai com.mg.ai.app --web-dir www
 
       - name: Add Android Platform & Sync
