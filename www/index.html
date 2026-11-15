@@ -976,6 +976,10 @@
       if (!clean) { if (opts.onEnd) opts.onEnd(); return; }
 
       var voice = getSelectedVoice();
+      if (!voice) {
+        availableVoices = window.speechSynthesis.getVoices();
+        voice = getSelectedVoice();
+      }
       var preset = VOICE_PRESETS[activePreset] || VOICE_PRESETS.male_young;
       var rateSlider = els.voiceRateInput ? parseFloat(els.voiceRateInput.value) : 1;
       var chunks = splitForSpeech(clean);
@@ -992,7 +996,6 @@
         }
         var utter = new SpeechSynthesisUtterance(chunks[chunkIdx]);
         if (voice) { utter.voice = voice; utter.lang = voice.lang; }
-        else { utter.lang = 'ar-EG'; }
         utter.pitch = preset.pitch;
         utter.rate = preset.rate * (isNaN(rateSlider) ? 1 : rateSlider);
         chunkIdx++;
@@ -1023,7 +1026,10 @@
         speakBtn.title = 'قراءة الرسالة';
         speakBtn.addEventListener('click', function(){
           if (currentSpeakingMessageId === msg.id) stopSpeaking();
-          else speakText(msg.content, { messageId: msg.id });
+          else speakText(msg.content, { 
+            messageId: msg.id, 
+            onError: function(err) { console.error('TTS Error:', err); alert('تعذر تشغيل الصوت. تأكد من إعدادات الصوت في هاتفك.'); } 
+          });
         });
         speakButtonRegistry[msg.id] = speakBtn;
         row.appendChild(speakBtn);
