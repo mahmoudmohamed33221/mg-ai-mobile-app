@@ -996,11 +996,7 @@
           return;
         }
         var utter = new SpeechSynthesisUtterance(chunks[chunkIdx]);
-        // تعديل: السماح للنظام باختيار الصوت الافتراضي إذا لم يكن هناك صوت محدد
-        if (voice && voice.name) { 
-          utter.voice = voice; 
-          utter.lang = voice.lang; 
-        }
+        // استخدام الصوت الافتراضي للنظام مباشرة
         utter.pitch = preset.pitch || 1;
         utter.rate = (preset.rate || 1) * (isNaN(rateSlider) ? 1 : rateSlider);
         chunkIdx++;
