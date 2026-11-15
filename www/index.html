@@ -432,6 +432,52 @@
   }
   .voice-preset-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
   .field input[type=range]{width:100%;accent-color:var(--accent);height:22px;}
+
+  /* ---------- update / build banner ---------- */
+  .banner{
+    margin:8px 16px 0;padding:10px 12px;flex-shrink:0;
+    border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-elevated);
+    font-size:12.5px;line-height:1.7;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  }
+  .banner.is-update{border-color:var(--accent);background:var(--accent-soft);}
+  .banner.is-error{border-color:rgba(255,65,54,0.4);background:var(--danger-soft);}
+  .banner .banner-text{flex:1;min-width:150px;}
+  .banner-btn{height:32px;}
+  .update-btn{color:var(--accent);border-color:var(--accent);animation:pulse 2.4s ease-in-out infinite;}
+
+  /* ---------- agent tool chips ---------- */
+  .tool-chip{
+    align-self:flex-start;max-width:92%;padding:6px 10px;
+    font-family:var(--font-mono);font-size:11.5px;line-height:1.6;color:var(--text-secondary);
+    border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--bg-panel);
+    word-break:break-word;
+  }
+  .tool-chip.ok{border-color:rgba(57,255,20,0.35);}
+  .tool-chip.fail{border-color:rgba(255,65,54,0.5);color:#FF8A82;}
+
+  /* ---------- settings extras ---------- */
+  .section-title{
+    font-family:var(--font-mono);font-size:12px;letter-spacing:1px;color:var(--accent);
+    margin:22px 0 12px;padding-top:16px;border-top:1px solid var(--border-soft);
+  }
+  .check-row{display:flex;align-items:flex-start;gap:9px;font-size:13px;line-height:1.7;margin:10px 0;color:var(--text-primary);cursor:pointer;}
+  .check-row input{margin-top:4px;accent-color:var(--accent);flex-shrink:0;}
+  .field input[type=text].ltr{direction:ltr;text-align:left;}
+
+  /* ---------- confirm dialog ---------- */
+  .confirm-overlay{
+    position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.72);
+    display:flex;align-items:center;justify-content:center;padding:16px;
+  }
+  .confirm-box{
+    width:100%;max-width:420px;max-height:80vh;overflow-y:auto;
+    background:var(--bg-panel);border:1px solid var(--accent);border-radius:var(--radius-lg);padding:18px;
+  }
+  .confirm-title{font-size:15px;font-weight:700;margin-bottom:12px;}
+  .confirm-line{font-family:var(--font-mono);font-size:12px;direction:ltr;text-align:left;color:var(--text-secondary);padding:3px 0;word-break:break-all;}
+  .confirm-note{font-size:12.5px;color:var(--text-secondary);line-height:1.8;margin-top:10px;}
+  .confirm-actions{display:flex;gap:10px;margin-top:16px;}
+  .confirm-actions .primary-btn,.confirm-actions .ghost-btn{margin-top:0;}
 </style>
 </head>
 <body>
@@ -452,11 +498,14 @@
           <span class="status-dot" id="statusDot"></span>
           <span id="statusLabel">بدون مفتاح</span>
         </div>
+        <button type="button" class="icon-btn update-btn" id="updateBtn" hidden aria-label="تحديث التطبيق" title="تحديث التطبيق">⬆</button>
         <button type="button" class="icon-btn" id="newChatBtn" aria-label="محادثة جديدة" title="محادثة جديدة">✚</button>
         <button type="button" class="icon-btn" id="historyBtn" aria-label="سجل المحادثات" title="سجل المحادثات">☰</button>
         <button type="button" class="icon-btn" id="settingsBtn" aria-label="الإعدادات">⚙</button>
       </div>
     </header>
+
+    <div class="banner" id="banner" hidden></div>
 
     <main class="chat" id="chatArea" role="log" aria-live="polite" aria-label="سجل المحادثة">
       <div class="empty-state" id="emptyState">
@@ -525,6 +574,42 @@
       <label for="systemPromptInput">شخصية المساعد (System Prompt)</label>
       <textarea id="systemPromptInput"></textarea>
       <div class="hint">الأداة دي بتشتغل بنموذج Gemini من Google — مش Claude من Anthropic — لكن التعليمات دي بتخليها ترد باحترافية عالية في البرمجة.</div>
+    </div>
+
+    <div class="section-title">🛠 التطوير الذاتي والتحديثات (GitHub)</div>
+
+    <div class="field">
+      <label for="ghTokenInput">GitHub Token</label>
+      <div class="key-row">
+        <input type="password" id="ghTokenInput" placeholder="github_pat_..." autocomplete="off" spellcheck="false">
+        <button type="button" class="text-btn" id="toggleGhTokenVisibility">إظهار</button>
+      </div>
+      <div class="hint">يفضّل Fine-grained token على ريبو المشروع بس، بصلاحيات: Contents (Read and write) + Actions (Read) + Metadata (Read). حط له تاريخ انتهاء. التوكن بيتحفظ على جهازك بس.</div>
+    </div>
+
+    <div class="field">
+      <label for="ghRepoInput">الريبو (owner/repo)</label>
+      <input type="text" id="ghRepoInput" class="ltr" placeholder="username/mg-ai-mobile-app" autocomplete="off" spellcheck="false">
+    </div>
+
+    <div class="field">
+      <label for="ghBranchInput">البرانش</label>
+      <input type="text" id="ghBranchInput" class="ltr" placeholder="main" autocomplete="off" spellcheck="false">
+    </div>
+
+    <label class="check-row"><input type="checkbox" id="agentEnabledInput"><span>وضع المطوّر: المساعد يقدر يقرا ويعدّل كود التطبيق ويرفعه على GitHub</span></label>
+    <label class="check-row"><input type="checkbox" id="autoCommitInput"><span>ارفع التعديلات من غير ما تسألني (مش مفضّل — الأفضل تشوف الملفات قبل الرفع)</span></label>
+
+    <div class="field">
+      <button type="button" class="text-btn" id="ghTestBtn" style="width:100%;padding:10px;">🔌 اختبار الاتصال بـ GitHub</button>
+      <div class="hint" id="ghTestResult"></div>
+    </div>
+
+    <div class="field">
+      <label>الإصدار والتحديث</label>
+      <div class="hint" id="versionInfo" style="margin:0 0 8px;"></div>
+      <button type="button" class="text-btn" id="checkUpdateBtn" style="width:100%;padding:10px;">⬆ فحص التحديثات</button>
+      <button type="button" class="ghost-btn" id="revertBtn">↩ تراجع عن آخر تعديل على GitHub</button>
     </div>
 
     <div class="field">
@@ -606,6 +691,17 @@
         </div>
         <div class="voice-status" id="voiceStatusText">بستأذن على الميكروفون...</div>
         <div class="voice-transcript" id="voiceTranscript"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-overlay" id="confirmOverlay" hidden role="dialog" aria-modal="true">
+    <div class="confirm-box">
+      <div class="confirm-title" id="confirmTitle"></div>
+      <div id="confirmBody"></div>
+      <div class="confirm-actions">
+        <button type="button" class="primary-btn" id="confirmOk">تأكيد</button>
+        <button type="button" class="ghost-btn" id="confirmCancel">إلغاء</button>
       </div>
     </div>
   </div>
@@ -1146,7 +1242,7 @@
     function updateStatus(){
       if (state.apiKey) {
         els.statusDot.classList.add('is-ready');
-        els.statusLabel.textContent = 'المفتاح جاهز';
+        els.statusLabel.textContent = 'المفتاح جاهز' + (agentActive() ? ' • مطوّر' : '');
       } else {
         els.statusDot.classList.remove('is-ready');
         els.statusLabel.textContent = 'بدون مفتاح';
@@ -1711,14 +1807,20 @@
 
     /* ---------------- Gemini streaming ---------------- */
 
-    function streamGemini(messagesForApi, onDelta, signal){
+    function streamGemini(messagesForApi, onDelta, signal, opts){
+      opts = opts || {};
       var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(state.model) + ':streamGenerateContent?alt=sse';
       var body = {
         contents: messagesForApi,
-        generationConfig: { temperature: 0.6, maxOutputTokens: 8192, thinkingConfig: { thinkingLevel: 'low' } }
+        generationConfig: { temperature: opts.agent ? 0.3 : 0.6, maxOutputTokens: opts.agent ? 32768 : 8192, thinkingConfig: { thinkingLevel: 'low' } }
       };
-      if (state.systemPrompt && state.systemPrompt.trim()) {
-        body.systemInstruction = { parts: [{ text: state.systemPrompt }] };
+      var sysText = (state.systemPrompt && state.systemPrompt.trim()) ? state.systemPrompt : '';
+      if (opts.agent) {
+        sysText = (sysText ? sysText + '\n\n' : '') + AGENT_PROMPT;
+        body.tools = AGENT_TOOLS;
+      }
+      if (sysText) {
+        body.systemInstruction = { parts: [{ text: sysText }] };
       }
 
       return fetch(url, {
@@ -1739,6 +1841,8 @@
         var decoder = new TextDecoder('utf-8');
         var buffer = '';
         var full = '';
+        var rawParts = [];
+        var calls = [];
         var lastFinishReason = null;
         var lastSafetyRatings = null;
 
@@ -1759,9 +1863,24 @@
           var parts = candidate && candidate.content && candidate.content.parts;
           if (parts && parts.length) {
             for (var p=0;p<parts.length;p++){
-              if (parts[p] && parts[p].text && !parts[p].thought) {
-                full += parts[p].text;
-                onDelta(parts[p].text, full);
+              var part = parts[p];
+              if (!part || part.thought) continue;
+              if (part.functionCall) {
+                calls.push({ name: part.functionCall.name, args: part.functionCall.args || {} });
+                rawParts.push(part);
+                continue;
+              }
+              if (typeof part.text === 'string') {
+                if (part.text) {
+                  full += part.text;
+                  onDelta(part.text, full);
+                }
+                var lastRaw = rawParts[rawParts.length - 1];
+                if (!part.thoughtSignature && lastRaw && typeof lastRaw.text === 'string' && !lastRaw.thoughtSignature && !lastRaw.functionCall) {
+                  lastRaw.text += part.text;
+                } else if (part.text || part.thoughtSignature) {
+                  rawParts.push({ text: part.text, thoughtSignature: part.thoughtSignature });
+                }
               }
             }
           }
@@ -1776,7 +1895,8 @@
             for (var li=0; li<lines.length; li++) processLine(lines[li]);
 
             if (result.done) {
-              return { text: full, finishReason: lastFinishReason, safetyRatings: lastSafetyRatings };
+              rawParts.forEach(function(rp){ if (rp.thoughtSignature === undefined) delete rp.thoughtSignature; });
+              return { text: full, finishReason: lastFinishReason, safetyRatings: lastSafetyRatings, parts: rawParts, calls: calls };
             }
             return pump();
           });
@@ -1826,10 +1946,19 @@
       setGenerating(true);
       state.controller = new AbortController();
 
-      streamGemini(apiMessages, function(delta, fullText){
-        assistantMsg.content = fullText;
-        renderStreamingText(assistantMsg);
-      }, state.controller.signal).then(function(result){
+      var chain;
+      if (agentActive()) {
+        chain = runAgentLoop(apiMessages, assistantMsg, state.controller.signal, function(m){ assistantMsg = m; });
+      } else {
+        chain = streamGemini(apiMessages, function(delta, fullText){
+          assistantMsg.content = fullText;
+          renderStreamingText(assistantMsg);
+        }, state.controller.signal).then(function(r){ return { result:r, msg:assistantMsg }; });
+      }
+
+      chain.then(function(out){
+        var result = out.result;
+        assistantMsg = out.msg;
         var textOut = result && result.text;
         if (textOut) {
           assistantMsg.content = textOut;
@@ -1837,7 +1966,9 @@
         } else {
           var reason = result && result.finishReason;
           var msg = 'وصل رد فارغ من Gemini';
-          if (reason === 'MAX_TOKENS') {
+          if (reason === 'STEP_LIMIT') {
+            msg = 'المساعد وصل للحد الأقصى من الخطوات (' + MAX_AGENT_STEPS + ') في طلب واحد. التعديلات المتجهزة لسه مترفعتش. قسّم الطلب لخطوات أصغر.';
+          } else if (reason === 'MAX_TOKENS') {
             msg += ' — سبب التوقف: MAX_TOKENS (الموديل استهلك كل حد الـ tokens في التفكير الداخلي قبل ما يبدأ يكتب إجابة فعلية). جرّب موديل زي gemini-3.5-flash-lite أو ابعت رسالة أقصر.';
           } else if (reason === 'SAFETY' || reason === 'RECITATION' || reason === 'BLOCKLIST' || reason === 'PROHIBITED_CONTENT' || reason === 'SPII') {
             msg += ' — سبب التوقف: ' + reason + ' (الموديل رفض يرد بسبب فلاتر الأمان الخاصة بيه، مش مشكلة في الكود أو المفتاح).';
@@ -1857,8 +1988,10 @@
           finalizeAssistantMessage(assistantMsg);
         } else {
           var raw = (err && err.message) ? err.message : 'خطأ غير معروف';
-          var friendly = 'حصل خطأ أثناء الاتصال بـ Gemini:\n' + raw;
-          if (/HTTP 429/.test(raw)) {
+          var friendly = (/^GitHub/.test(raw) ? 'حصل خطأ في الاتصال بـ GitHub:\n' : 'حصل خطأ أثناء الاتصال بـ Gemini:\n') + raw;
+          if (/^GitHub/.test(raw)) {
+            friendly += '\n\nراجع التوكن واسم الريبو والبرانش من الإعدادات (التوكن محتاج Contents: Read and write).';
+          } else if (/HTTP 429/.test(raw)) {
             friendly += '\n\nده معناه إن الحصة المجانية (Free tier) للموديل ده على مفتاحك خلصت أو أصلًا صفر (بعض الموديلات القوية زي gemini-3.1-pro-preview محتاجة باقة مدفوعة Billing مفعّلة في Google Cloud عشان تشتغل). جرّب موديل أخف زي gemini-3.6-flash أو gemini-3.5-flash-lite من الإعدادات، أو استنى شوية وحاول تاني.';
           } else if (/HTTP 404/.test(raw)) {
             friendly += '\n\nده معناه إن الموديل ده اتوقف عن الحسابات الجديدة. اختار موديل تاني من قايمة الإعدادات.';
@@ -1878,6 +2011,727 @@
         if (sendOpts.onDone) sendOpts.onDone(assistantMsg);
       });
     }
+
+    /* ================= self-update + GitHub developer mode ================= */
+
+    var SETTINGS_KEY = 'mgai_settings_v1';
+    var MAX_AGENT_STEPS = 30;
+    var REPO_RE = /^[\w.-]+\/[\w.-]+$/;
+    var PROTECTED_RE = /^(\.git\/|\.github\/|keystore\/|scripts\/|android\/|node_modules\/|www\/version\.json$|package(-lock)?\.json$|capacitor\.config\.)/i;
+    var BINARY_RE = /\.(png|jpe?g|gif|webp|ico|mp3|mp4|webm|woff2?|ttf|otf|apk|zip|jks|pdf)$/i;
+
+    var AGENT_PROMPT = [
+      'أنت دلوقتي في "وضع المطوّر": تقدر تقرا وتعدّل كود التطبيق نفسه (MG.ai CODER) المرفوع على GitHub عن طريق الأدوات المتاحة.',
+      'معلومات المشروع: تطبيق أندرويد بيتبني بـ Capacitor، وكل الواجهة والكود في ملف واحد هو www/index.html (حوالي ٢٠٠٠ سطر، واجهة عربية RTL بثيم أخضر داكن). أي commit على البرانش بيشغّل بناء تلقائي وبيطلع نسخة APK جديدة، والمستخدم بيضغط "تحديث" جوه التطبيق.',
+      'القواعد:',
+      '١) قبل أي تعديل اعمل grep أو read_file على الجزء المعني. متقراش الملف كله لو مش محتاج (الملف كبير).',
+      '٢) للتعديلات استخدم replace_in_file: النص القديم لازم يطابق الملف بالحرف ويظهر مرة واحدة. متستخدمش write_file على www/index.html كله إلا لو المستخدم طلب إعادة كتابة كاملة صريحة.',
+      '٣) حافظ على كل الميزات الموجودة، ومتكسرش الشغل الحالي. حافظ على اتجاه RTL والألوان والستايل العام.',
+      '٤) لما تخلص كل التعديلات استدعي commit_changes مرة واحدة برسالة commit واضحة بالإنجليزي. كل commit بيشغّل بناء كامل، فمتعملش commit لكل خطوة.',
+      '٥) ممنوع تعدّل .github/ أو keystore/ أو scripts/ أو www/version.json (محمية). ومتحطش أي مفتاح أو توكن جوه الكود.',
+      '٦) لو المستخدم بيسأل أو بيطلب شرح بس، من غير طلب تعديل، متعدّلش حاجة.',
+      '٧) أي ملف جديد يتحط جوه www/ عشان يدخل في التطبيق.',
+      '٨) بعد الرفع قول للمستخدم باختصار إيه اللي اتغيّر، وإن البناء بياخد حوالي ٤ لـ ٦ دقايق وإن زرار التحديث هيظهر في التطبيق لما يخلص.'
+    ].join('\n');
+
+    var AGENT_TOOLS = [{ functionDeclarations: [
+      { name:'list_files', description:'يعرض ملفات المشروع على GitHub (مع الأحجام).',
+        parameters:{ type:'OBJECT', properties:{ prefix:{ type:'STRING', description:'اختياري: يعرض بس المسارات اللي بتبدأ بـ prefix، مثلا www/' } } } },
+      { name:'read_file', description:'يقرا ملف نصي (أو جزء منه بأرقام الأسطر). من غير start_line/end_line بيرجّع أول ٣٠٠ سطر.',
+        parameters:{ type:'OBJECT', properties:{ path:{ type:'STRING' }, start_line:{ type:'INTEGER' }, end_line:{ type:'INTEGER' } }, required:['path'] } },
+      { name:'grep', description:'بحث (regex بدون حساسية لحالة الحروف) جوه ملف معيّن أو كل ملفات المشروع النصية. بيرجّع أرقام الأسطر.',
+        parameters:{ type:'OBJECT', properties:{ pattern:{ type:'STRING' }, path:{ type:'STRING', description:'اختياري' } }, required:['pattern'] } },
+      { name:'replace_in_file', description:'يستبدل نص في ملف. old_str لازم يطابق بالحرف ويظهر مرة واحدة (أو استخدم replace_all). التعديل بيتجهّز بس ومبيترفعش إلا بـ commit_changes.',
+        parameters:{ type:'OBJECT', properties:{ path:{ type:'STRING' }, old_str:{ type:'STRING' }, new_str:{ type:'STRING' }, replace_all:{ type:'BOOLEAN' } }, required:['path','old_str','new_str'] } },
+      { name:'write_file', description:'ينشئ ملف جديد أو يكتب فوق ملف موجود بالكامل. بيتجهّز بس ومبيترفعش إلا بـ commit_changes.',
+        parameters:{ type:'OBJECT', properties:{ path:{ type:'STRING' }, content:{ type:'STRING' } }, required:['path','content'] } },
+      { name:'delete_file', description:'يحذف ملف (بيتجهّز بس لحد commit_changes).',
+        parameters:{ type:'OBJECT', properties:{ path:{ type:'STRING' } }, required:['path'] } },
+      { name:'discard_changes', description:'يلغي كل التعديلات المتجهزة اللي لسه متترفعتش.',
+        parameters:{ type:'OBJECT', properties:{} } },
+      { name:'commit_changes', description:'يفحص الكود (syntax) ثم يرفع كل التعديلات المتجهزة في commit واحد، وده بيبدأ بناء APK جديد تلقائيًا. المستخدم ممكن يرفض.',
+        parameters:{ type:'OBJECT', properties:{ message:{ type:'STRING', description:'رسالة commit قصيرة بالإنجليزي' } }, required:['message'] } },
+      { name:'get_build_status', description:'يرجّع حالة آخر بناء على GitHub Actions وآخر إصدار منشور.',
+        parameters:{ type:'OBJECT', properties:{} } }
+    ] }];
+
+    state.ghToken = '';
+    state.ghRepo = '';
+    state.ghBranch = 'main';
+    state.agentEnabled = false;
+    state.autoCommit = false;
+    state.currentBuild = 0;
+    state.update = null;
+
+    var agent = { headSha:null, treeSha:null, files:{}, cache:{}, staged:{} };
+    var buildWatch = { timer:null, token:0 };
+
+    function $(id){ return document.getElementById(id); }
+
+    /* ---------- settings persistence ---------- */
+
+    function normalizeRepo(v){
+      return String(v || '').trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
+    }
+
+    function syncSettingsInputs(){
+      els.apiKeyInput.value = state.apiKey;
+      if (state.model && !Array.prototype.some.call(els.modelInput.options, function(o){ return o.value === state.model; })) {
+        var opt = document.createElement('option');
+        opt.value = state.model; opt.textContent = state.model;
+        els.modelInput.appendChild(opt);
+      }
+      els.modelInput.value = state.model;
+      els.systemPromptInput.value = state.systemPrompt;
+      $('ghTokenInput').value = state.ghToken;
+      $('ghRepoInput').value = state.ghRepo;
+      $('ghBranchInput').value = state.ghBranch;
+      $('agentEnabledInput').checked = state.agentEnabled;
+      $('autoCommitInput').checked = state.autoCommit;
+    }
+
+    function loadSettings(){
+      var s = {};
+      try { s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {}; } catch(e) {}
+      if (s.apiKey) state.apiKey = s.apiKey;
+      if (s.model) state.model = s.model;
+      if (s.systemPrompt) state.systemPrompt = s.systemPrompt;
+      state.ghToken = s.ghToken || '';
+      state.ghRepo = s.ghRepo || '';
+      state.ghBranch = s.ghBranch || 'main';
+      state.agentEnabled = !!s.agentEnabled;
+      state.autoCommit = !!s.autoCommit;
+      syncSettingsInputs();
+    }
+
+    function persistSettings(){
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+          apiKey: state.apiKey,
+          model: state.model,
+          systemPrompt: state.systemPrompt === DEFAULT_SYSTEM_PROMPT ? '' : state.systemPrompt,
+          ghToken: state.ghToken,
+          ghRepo: state.ghRepo,
+          ghBranch: state.ghBranch,
+          agentEnabled: state.agentEnabled,
+          autoCommit: state.autoCommit
+        }));
+      } catch(e) {}
+    }
+
+    function readGithubInputs(){
+      state.ghToken = $('ghTokenInput').value.trim();
+      state.ghRepo = normalizeRepo($('ghRepoInput').value);
+      state.ghBranch = $('ghBranchInput').value.trim() || 'main';
+      state.agentEnabled = $('agentEnabledInput').checked;
+      state.autoCommit = $('autoCommitInput').checked;
+      $('ghRepoInput').value = state.ghRepo;
+    }
+
+    function ghConfigured(){ return !!(state.ghToken && REPO_RE.test(state.ghRepo)); }
+    function agentActive(){ return !!(state.agentEnabled && ghConfigured()); }
+    function branchName(){ return state.ghBranch || 'main'; }
+
+    /* ---------- banner + confirm dialog ---------- */
+
+    var bannerEl = $('banner');
+    var updateBtnEl = $('updateBtn');
+
+    function hideBanner(){ bannerEl.hidden = true; }
+
+    function showBanner(opts){
+      bannerEl.className = 'banner' + (opts.kind ? ' is-' + opts.kind : '');
+      bannerEl.innerHTML = '';
+      var t = document.createElement('div');
+      t.className = 'banner-text';
+      t.textContent = opts.text;
+      bannerEl.appendChild(t);
+      (opts.actions || []).forEach(function(a){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'text-btn banner-btn';
+        b.textContent = a.label;
+        b.addEventListener('click', a.onClick);
+        bannerEl.appendChild(b);
+      });
+      bannerEl.hidden = false;
+    }
+
+    var CLOSE_ACTION = [{ label:'إغلاق', onClick:hideBanner }];
+
+    function askConfirm(o){
+      return new Promise(function(resolve){
+        var ov = $('confirmOverlay'), ok = $('confirmOk'), cancel = $('confirmCancel'), body = $('confirmBody');
+        $('confirmTitle').textContent = o.title;
+        body.innerHTML = '';
+        (o.lines || []).forEach(function(l){
+          var d = document.createElement('div');
+          d.className = 'confirm-line';
+          d.textContent = l;
+          body.appendChild(d);
+        });
+        if (o.note) {
+          var n = document.createElement('div');
+          n.className = 'confirm-note';
+          n.textContent = o.note;
+          body.appendChild(n);
+        }
+        ok.textContent = o.okLabel || 'تأكيد';
+        ov.hidden = false;
+        function done(v){
+          ov.hidden = true;
+          ok.removeEventListener('click', yes);
+          cancel.removeEventListener('click', no);
+          resolve(v);
+        }
+        function yes(){ done(true); }
+        function no(){ done(false); }
+        ok.addEventListener('click', yes);
+        cancel.addEventListener('click', no);
+      });
+    }
+
+    /* ---------- GitHub REST client ---------- */
+
+    async function gh(method, path, body){
+      var headers = {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': 'Bearer ' + state.ghToken,
+        'X-GitHub-Api-Version': '2022-11-28'
+      };
+      if (body) headers['Content-Type'] = 'application/json';
+      var res = await fetch('https://api.github.com/repos/' + state.ghRepo + path, {
+        method: method, headers: headers, body: body ? JSON.stringify(body) : undefined
+      });
+      if (!res.ok) {
+        var detail = '';
+        try { detail = (await res.json()).message || ''; } catch(e) {}
+        throw new Error('GitHub HTTP ' + res.status + (detail ? ' — ' + detail : ''));
+      }
+      return res.status === 204 ? null : res.json();
+    }
+
+    function b64ToUtf8(b64){
+      var bin = atob(String(b64).replace(/\s/g, ''));
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder('utf-8').decode(bytes);
+    }
+
+    async function refreshAgentState(){
+      try {
+        var ref = await gh('GET', '/git/ref/heads/' + branchName());
+        agent.headSha = ref.object.sha;
+        var commit = await gh('GET', '/git/commits/' + agent.headSha);
+        agent.treeSha = commit.tree.sha;
+        var tree = await gh('GET', '/git/trees/' + agent.treeSha + '?recursive=1');
+        agent.files = {};
+        (tree.tree || []).forEach(function(n){
+          if (n.type === 'blob') agent.files[n.path] = { sha:n.sha, size:n.size || 0 };
+        });
+        agent.cache = {};
+      } catch(e) {
+        throw new Error(/^GitHub/.test(e.message) ? e.message : 'GitHub: ' + e.message);
+      }
+    }
+
+    /* ---------- file helpers ---------- */
+
+    function normPath(p){
+      p = String(p || '').trim().replace(/\\/g, '/').replace(/^\.?\//, '');
+      if (!p || p.indexOf('..') !== -1) throw new Error('مسار غير صالح: ' + p);
+      return p;
+    }
+
+    function assertWritable(p){
+      if (PROTECTED_RE.test(p)) throw new Error('الملف ده محمي ومينفعش يتعدّل من هنا: ' + p);
+      if (BINARY_RE.test(p)) throw new Error('الأداة بتتعامل مع الملفات النصية بس: ' + p);
+    }
+
+    async function fetchOriginal(p){
+      if (agent.cache[p] !== undefined) return agent.cache[p];
+      var f = agent.files[p];
+      if (!f) throw new Error('الملف مش موجود: ' + p);
+      if (BINARY_RE.test(p)) throw new Error('ملف ثنائي (صورة/وسائط) ومينفعش يتقرا كنص: ' + p);
+      var blob = await gh('GET', '/git/blobs/' + f.sha);
+      var text = b64ToUtf8(blob.content);
+      agent.cache[p] = text;
+      return text;
+    }
+
+    async function getFileText(p){
+      if (Object.prototype.hasOwnProperty.call(agent.staged, p)) {
+        if (agent.staged[p] === null) throw new Error('الملف ده متعلّم للحذف في التعديلات الحالية: ' + p);
+        return agent.staged[p];
+      }
+      return fetchOriginal(p);
+    }
+
+    function fileExists(p){
+      if (Object.prototype.hasOwnProperty.call(agent.staged, p)) return agent.staged[p] !== null;
+      return !!agent.files[p];
+    }
+
+    function lineDiffStats(oldT, newT){
+      var m = Object.create(null), add = 0, rem = 0;
+      oldT.split('\n').forEach(function(l){ m[l] = (m[l] || 0) + 1; });
+      newT.split('\n').forEach(function(l){ if (m[l] > 0) m[l]--; else add++; });
+      Object.keys(m).forEach(function(k){ rem += m[k]; });
+      return { add:add, rem:rem };
+    }
+
+    function syntaxCheck(path, content){
+      var errs = [];
+      try {
+        if (/\.html?$/i.test(path)) {
+          var doc = new DOMParser().parseFromString(content, 'text/html');
+          var i = 0;
+          Array.prototype.forEach.call(doc.querySelectorAll('script:not([src])'), function(s){
+            var t = (s.getAttribute('type') || '').toLowerCase();
+            if (t && t !== 'text/javascript' && t !== 'application/javascript') return;
+            i++;
+            try { new Function(s.textContent); }
+            catch(e) { errs.push(path + ' (script #' + i + '): ' + e.message); }
+          });
+        } else if (/\.js$/i.test(path)) {
+          try { new Function(content); } catch(e) { errs.push(path + ': ' + e.message); }
+        }
+      } catch(e) {}
+      return errs;
+    }
+
+    /* ---------- tools ---------- */
+
+    function toolListFiles(a){
+      var prefix = a.prefix ? String(a.prefix).replace(/^\.?\//, '') : '';
+      var sizes = {};
+      Object.keys(agent.files).forEach(function(p){ sizes[p] = agent.files[p].size; });
+      Object.keys(agent.staged).forEach(function(p){
+        if (agent.staged[p] === null) delete sizes[p]; else sizes[p] = agent.staged[p].length;
+      });
+      var out = Object.keys(sizes).filter(function(p){ return p.indexOf(prefix) === 0; }).sort().slice(0, 300)
+        .map(function(p){ return { path:p, size:sizes[p] }; });
+      return { branch:branchName(), count:out.length, files:out, staged:Object.keys(agent.staged) };
+    }
+
+    async function toolReadFile(a){
+      var p = normPath(a.path);
+      var text = await getFileText(p);
+      var lines = text.split('\n');
+      var total = lines.length;
+      var start = Math.max(1, parseInt(a.start_line, 10) || 1);
+      var end = parseInt(a.end_line, 10) || (start + 299);
+      end = Math.min(end, total, start + 499);
+      var chunk = lines.slice(start - 1, end).join('\n');
+      var cut = false;
+      if (chunk.length > 30000) { chunk = chunk.slice(0, 30000); cut = true; }
+      return { path:p, total_lines:total, start_line:start, end_line:end, more_available:(cut || end < total), content:chunk };
+    }
+
+    async function toolGrep(a){
+      var re;
+      try { re = new RegExp(a.pattern, 'i'); }
+      catch(e) { re = new RegExp(String(a.pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'); }
+      var targets;
+      if (a.path) {
+        targets = [normPath(a.path)];
+      } else {
+        targets = Object.keys(agent.files).filter(function(p){
+          return !BINARY_RE.test(p) && !PROTECTED_RE.test(p) && agent.files[p].size < 400000;
+        }).slice(0, 40);
+      }
+      var hits = [];
+      for (var i = 0; i < targets.length; i++) {
+        var text;
+        try { text = await getFileText(targets[i]); } catch(e) { if (a.path) throw e; continue; }
+        var lines = text.split('\n');
+        for (var j = 0; j < lines.length && hits.length < 60; j++) {
+          if (re.test(lines[j])) hits.push({ path:targets[i], line:j + 1, text:lines[j].trim().slice(0, 220) });
+        }
+      }
+      return { matches:hits.length, capped:hits.length >= 60, hits:hits };
+    }
+
+    async function toolReplace(a){
+      var p = normPath(a.path);
+      assertWritable(p);
+      var text = await getFileText(p);
+      var oldS = String(a.old_str == null ? '' : a.old_str);
+      var newS = String(a.new_str == null ? '' : a.new_str);
+      if (!oldS) throw new Error('old_str فاضي.');
+      var count = text.split(oldS).length - 1;
+      if (count === 0) throw new Error('old_str مش موجود في الملف بالحرف. اقرا الجزء بـ read_file وانسخ النص بالظبط (المسافات والأسطر).');
+      if (count > 1 && !a.replace_all) throw new Error('old_str ظاهر ' + count + ' مرات. زوّد سطور حواليه عشان يبقى فريد، أو استخدم replace_all.');
+      var out = text.split(oldS).join(newS);
+      agent.staged[p] = out;
+      return { ok:true, path:p, replacements:count, total_lines:out.split('\n').length };
+    }
+
+    function toolWrite(a){
+      var p = normPath(a.path);
+      assertWritable(p);
+      var c = String(a.content == null ? '' : a.content);
+      if (c.length > 900000) throw new Error('الملف كبير قوي (أكتر من ٩٠٠ كيلوبايت).');
+      var existed = fileExists(p);
+      agent.staged[p] = c;
+      return { ok:true, path:p, created:!existed, lines:c.split('\n').length };
+    }
+
+    function toolDelete(a){
+      var p = normPath(a.path);
+      assertWritable(p);
+      if (!fileExists(p)) throw new Error('الملف مش موجود: ' + p);
+      agent.staged[p] = null;
+      return { ok:true, path:p, deleted:true };
+    }
+
+    function toolDiscard(){
+      var n = Object.keys(agent.staged).length;
+      agent.staged = {};
+      return { ok:true, discarded:n };
+    }
+
+    async function toolCommit(a){
+      var paths = Object.keys(agent.staged);
+      if (!paths.length) throw new Error('مفيش تعديلات متجهزة للرفع.');
+      var msg = (String(a.message || '').trim() || 'Update from MG.ai').slice(0, 200);
+
+      var errs = [];
+      paths.forEach(function(p){ if (agent.staged[p] !== null) errs = errs.concat(syntaxCheck(p, agent.staged[p])); });
+      if (errs.length) return { ok:false, error:'فيه أخطاء syntax في الكود. صلّحها وحاول commit تاني.', errors:errs.slice(0, 8) };
+
+      var summary = [];
+      for (var i = 0; i < paths.length; i++) {
+        var p = paths[i], neu = agent.staged[p];
+        if (neu === null) { summary.push('− ' + p + '  (حذف)'); continue; }
+        if (agent.files[p]) {
+          var d = lineDiffStats(await fetchOriginal(p), neu);
+          summary.push('~ ' + p + '  (+' + d.add + ' / −' + d.rem + ')');
+        } else {
+          summary.push('+ ' + p + '  (جديد)');
+        }
+      }
+
+      if (!state.autoCommit) {
+        var ok = await askConfirm({
+          title: 'رفع التعديلات وبناء نسخة جديدة؟',
+          lines: summary,
+          note: 'رسالة الـ commit: ' + msg,
+          okLabel: 'ارفع وابني'
+        });
+        if (!ok) return { ok:false, error:'المستخدم رفض رفع التعديلات. التعديلات لسه متجهزة، اسأله يحب تعدّل إيه.' };
+      }
+
+      var ref = await gh('GET', '/git/ref/heads/' + branchName());
+      if (ref.object.sha !== agent.headSha) {
+        await refreshAgentState();
+        return { ok:false, error:'الريبو اتغيّر من مكان تاني أثناء الشغل. التعديلات المتجهزة اتمسحت؛ ابدأ من الأول على النسخة الجديدة.' };
+      }
+
+      var entries = [];
+      for (var k = 0; k < paths.length; k++) {
+        var pp = paths[k];
+        if (agent.staged[pp] === null) {
+          entries.push({ path:pp, mode:'100644', type:'blob', sha:null });
+        } else {
+          var blob = await gh('POST', '/git/blobs', { content:agent.staged[pp], encoding:'utf-8' });
+          entries.push({ path:pp, mode:'100644', type:'blob', sha:blob.sha });
+        }
+      }
+      var tree = await gh('POST', '/git/trees', { base_tree:agent.treeSha, tree:entries });
+      var commit = await gh('POST', '/git/commits', { message:msg, tree:tree.sha, parents:[agent.headSha] });
+      await gh('PATCH', '/git/refs/heads/' + branchName(), { sha:commit.sha });
+
+      agent.staged = {};
+      try { await refreshAgentState(); } catch(e) {}
+      watchBuild(commit.sha);
+      return { ok:true, commit:commit.sha.slice(0, 7), url:commit.html_url, files:summary, note:'البناء بدأ تلقائيًا على GitHub Actions وبياخد حوالي ٤ لـ ٦ دقايق.' };
+    }
+
+    async function toolBuildStatus(){
+      var runs = await gh('GET', '/actions/runs?branch=' + encodeURIComponent(branchName()) + '&per_page=1');
+      var run = (runs.workflow_runs || [])[0];
+      var out = { latest_run: run ? { status:run.status, conclusion:run.conclusion, url:run.html_url, started:run.created_at } : null };
+      try {
+        var rel = await gh('GET', '/releases/latest');
+        out.latest_release = rel.tag_name;
+      } catch(e) { out.latest_release = null; }
+      out.installed_build = state.currentBuild;
+      return out;
+    }
+
+    async function executeTool(name, args){
+      args = args || {};
+      try {
+        switch (name) {
+          case 'list_files': return toolListFiles(args);
+          case 'read_file': return await toolReadFile(args);
+          case 'grep': return await toolGrep(args);
+          case 'replace_in_file': return await toolReplace(args);
+          case 'write_file': return toolWrite(args);
+          case 'delete_file': return toolDelete(args);
+          case 'discard_changes': return toolDiscard();
+          case 'commit_changes': return await toolCommit(args);
+          case 'get_build_status': return await toolBuildStatus();
+          default: return { error:'أداة غير معروفة: ' + name };
+        }
+      } catch(e) {
+        return { error: (e && e.message) ? e.message : String(e) };
+      }
+    }
+
+    function toolLabel(name, a){
+      a = a || {};
+      switch (name) {
+        case 'list_files': return '📂 عرض الملفات';
+        case 'read_file': return '📖 قراءة ' + (a.path || '');
+        case 'grep': return '🔎 بحث: ' + (a.pattern || '');
+        case 'replace_in_file': return '✏️ تعديل ' + (a.path || '');
+        case 'write_file': return '📝 كتابة ' + (a.path || '');
+        case 'delete_file': return '🗑 حذف ' + (a.path || '');
+        case 'discard_changes': return '↩ إلغاء التعديلات المتجهزة';
+        case 'commit_changes': return '🚀 رفع التعديلات';
+        case 'get_build_status': return '🔨 حالة البناء';
+        default: return '🔧 ' + name;
+      }
+    }
+
+    function addToolChip(name, args){
+      var row = document.createElement('div');
+      row.className = 'msg-row is-assistant';
+      var chip = document.createElement('div');
+      chip.className = 'tool-chip';
+      chip.textContent = toolLabel(name, args) + ' …';
+      row.appendChild(chip);
+      els.messagesList.appendChild(row);
+      scrollToBottom();
+      return chip;
+    }
+
+    function removeMessage(msg){
+      var i = state.messages.indexOf(msg);
+      if (i !== -1) state.messages.splice(i, 1);
+      var row = msg.colEl && msg.colEl.parentNode;
+      if (row && row.parentNode) row.parentNode.removeChild(row);
+    }
+
+    /* ---------- agent loop (Gemini function calling) ---------- */
+
+    async function runAgentLoop(apiMessages, firstMsg, signal, setCurrent){
+      var contents = apiMessages.slice();
+      var msg = firstMsg;
+      await refreshAgentState();
+      agent.staged = {};
+
+      for (var step = 0; step < MAX_AGENT_STEPS; step++) {
+        if (step > 0) { msg = addMessage('assistant', ''); setCurrent(msg); }
+        var current = msg;
+        var result = await streamGemini(contents, function(delta, full){
+          current.content = full;
+          renderStreamingText(current);
+        }, signal, { agent:true });
+
+        if (!result.calls.length) return { result:result, msg:msg };
+
+        if (result.text) { msg.content = result.text; finalizeAssistantMessage(msg); }
+        else { removeMessage(msg); }
+
+        contents.push({ role:'model', parts:result.parts });
+        var responses = [];
+        for (var c = 0; c < result.calls.length; c++) {
+          var call = result.calls[c];
+          var chip = addToolChip(call.name, call.args);
+          var out = await executeTool(call.name, call.args);
+          if (signal && signal.aborted) { var ab = new Error('aborted'); ab.name = 'AbortError'; throw ab; }
+          var failed = !!(out && (out.error || out.ok === false));
+          chip.classList.add(failed ? 'fail' : 'ok');
+          chip.textContent = toolLabel(call.name, call.args) + (failed ? ' ✗ ' + (out.error || '') : ' ✓');
+          responses.push({ functionResponse:{ name:call.name, response:out } });
+        }
+        contents.push({ role:'user', parts:responses });
+      }
+      return { result:{ text:'', finishReason:'STEP_LIMIT' }, msg:msg };
+    }
+
+    /* ---------- build watcher + updates ---------- */
+
+    function openExternal(url){
+      try {
+        var B = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+        if (B && B.open) { B.open({ url:url }); return; }
+      } catch(e) {}
+      window.open(url, '_blank');
+    }
+
+    function parseBuild(tag){
+      var m = /(\d+)\s*$/.exec(tag || '');
+      return m ? parseInt(m[1], 10) : 0;
+    }
+
+    function startUpdate(){
+      if (!state.update) return;
+      openExternal(state.update.url);
+      showBanner({
+        text: 'بيتحمّل ملف التحديث. بعد ما يخلص افتحه من الإشعارات واضغط «تثبيت». لو أندرويد سأل عن السماح بالتثبيت من المتصفح، فعّله مرة واحدة. التحديث بيتثبت فوق النسخة الحالية ومحادثاتك وإعداداتك بتفضل زي ما هي.',
+        actions: CLOSE_ACTION
+      });
+    }
+
+    async function checkForUpdate(manual){
+      if (!REPO_RE.test(state.ghRepo)) {
+        if (manual) showBanner({ text:'اكتب اسم الريبو (owner/repo) في الإعدادات الأول.', kind:'error', actions:CLOSE_ACTION });
+        return;
+      }
+      try {
+        var headers = { 'Accept':'application/vnd.github+json' };
+        if (state.ghToken) headers['Authorization'] = 'Bearer ' + state.ghToken;
+        var res = await fetch('https://api.github.com/repos/' + state.ghRepo + '/releases/latest', { headers:headers });
+        if (res.status === 404) {
+          if (manual) showBanner({ text:'لسه مفيش إصدارات منشورة. استنى أول بناء يخلص على GitHub Actions.', actions:CLOSE_ACTION });
+          return;
+        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var rel = await res.json();
+        var asset = (rel.assets || []).filter(function(a){ return /\.apk$/i.test(a.name); })[0];
+        var latest = parseBuild(rel.tag_name);
+        if (asset && latest > state.currentBuild) {
+          state.update = { build:latest, url:asset.browser_download_url };
+          updateBtnEl.hidden = false;
+          showBanner({
+            text: '⬆ تحديث جديد جاهز (build ' + latest + ').',
+            kind: 'update',
+            actions: [{ label:'تحديث الآن', onClick:startUpdate }, { label:'لاحقًا', onClick:hideBanner }]
+          });
+        } else {
+          state.update = null;
+          updateBtnEl.hidden = true;
+          if (manual) showBanner({ text:'✓ أنت على أحدث إصدار' + (state.currentBuild ? ' (build ' + state.currentBuild + ')' : '') + '.', actions:CLOSE_ACTION });
+        }
+      } catch(e) {
+        if (manual) showBanner({ text:'تعذّر فحص التحديثات: ' + e.message, kind:'error', actions:CLOSE_ACTION });
+      }
+    }
+
+    function watchBuild(sha){
+      clearTimeout(buildWatch.timer);
+      var token = ++buildWatch.token;
+      var started = Date.now();
+      showBanner({ text:'🔨 اتبعت لـ GitHub — بستنى البناء يبدأ…' });
+
+      function tick(){
+        if (token !== buildWatch.token) return;
+        gh('GET', '/actions/runs?head_sha=' + sha + '&per_page=5').then(function(r){
+          if (token !== buildWatch.token) return;
+          var run = (r.workflow_runs || [])[0];
+          if (run && run.status === 'completed') {
+            if (run.conclusion === 'success') {
+              checkForUpdate(true);
+            } else if (run.conclusion === 'cancelled') {
+              showBanner({ text:'البناء اتلغى لأن فيه commit أحدث بدأ بعده.', actions:CLOSE_ACTION });
+            } else {
+              showBanner({
+                text: '❌ البناء فشل (' + run.conclusion + '). النسخة اللي عندك لسه شغالة زي ما هي. افتح التفاصيل على GitHub.',
+                kind: 'error',
+                actions: [{ label:'فتح التفاصيل', onClick:function(){ openExternal(run.html_url); } }, { label:'إغلاق', onClick:hideBanner }]
+              });
+            }
+            return;
+          }
+          if (run) {
+            showBanner({ text:'🔨 جاري بناء النسخة الجديدة… (عادةً ٤ لـ ٦ دقايق). هيظهرلك زرار التحديث أول ما تخلص.' });
+          } else if (Date.now() - started > 180000) {
+            showBanner({ text:'مفيش بناء بدأ لحد دلوقتي. اتأكد إن GitHub Actions مفعّلة على الريبو.', kind:'error', actions:CLOSE_ACTION });
+            return;
+          }
+          if (Date.now() - started < 25 * 60000) buildWatch.timer = setTimeout(tick, 15000);
+        }).catch(function(e){
+          showBanner({
+            text: 'مقدرتش أتابع حالة البناء (' + e.message + '). التوكن محتاج صلاحية Actions: Read. تقدر تتابعه من GitHub، وهيظهرلك التحديث لما يخلص لو فحصته من الإعدادات.',
+            kind: 'error', actions: CLOSE_ACTION
+          });
+        });
+      }
+      tick();
+    }
+
+    async function revertLastCommit(){
+      if (!ghConfigured()) {
+        showBanner({ text:'ضيف التوكن والريبو في الإعدادات الأول.', kind:'error', actions:CLOSE_ACTION });
+        return;
+      }
+      try {
+        var ref = await gh('GET', '/git/ref/heads/' + branchName());
+        var head = await gh('GET', '/git/commits/' + ref.object.sha);
+        if (!head.parents || !head.parents.length) throw new Error('مفيش commit قبل ده يتراجع ليه.');
+        var parent = await gh('GET', '/git/commits/' + head.parents[0].sha);
+        var title = head.message.split('\n')[0];
+        var ok = await askConfirm({
+          title: 'التراجع عن آخر تعديل؟',
+          lines: ['آخر commit: ' + title],
+          note: 'هيتعمل commit جديد بيرجّع الكود لحالته قبل التعديل ده، وهيبدأ بناء جديد.',
+          okLabel: 'تراجع'
+        });
+        if (!ok) return;
+        var nc = await gh('POST', '/git/commits', { message:'Revert: ' + title, tree:parent.tree.sha, parents:[head.sha] });
+        await gh('PATCH', '/git/refs/heads/' + branchName(), { sha:nc.sha });
+        closeSettings();
+        watchBuild(nc.sha);
+      } catch(e) {
+        showBanner({ text:'فشل التراجع: ' + e.message, kind:'error', actions:CLOSE_ACTION });
+      }
+    }
+
+    async function testGithub(){
+      var out = $('ghTestResult');
+      readGithubInputs();
+      persistSettings();
+      if (!ghConfigured()) { out.textContent = 'اكتب التوكن واسم الريبو بالشكل owner/repo.'; return; }
+      out.textContent = 'بختبر الاتصال…';
+      try {
+        var repo = await gh('GET', '');
+        var msgs = ['✓ متصل بـ ' + repo.full_name + (repo.private ? ' (خاص)' : ' (عام)')];
+        if (repo.permissions && repo.permissions.push === false) msgs.push('⚠ التوكن مفيهوش صلاحية الكتابة (Contents: Read and write).');
+        if (repo.default_branch && repo.default_branch !== branchName()) msgs.push('ℹ البرانش الافتراضي للريبو هو "' + repo.default_branch + '" مش "' + branchName() + '".');
+        try { await gh('GET', '/actions/runs?per_page=1'); msgs.push('✓ صلاحية Actions شغالة (متابعة البناء).'); }
+        catch(e) { msgs.push('⚠ مقدرتش أقرا Actions: ضيف صلاحية Actions: Read للتوكن عشان أتابع البناء.'); }
+        if (repo.private) msgs.push('⚠ الريبو خاص: زرار التحديث جوه التطبيق مش هيقدر يحمّل الـ APK. خلّي الريبو عام (التطبيق مفيهوش أسرار).');
+        out.textContent = msgs.join('\n');
+        out.style.whiteSpace = 'pre-line';
+      } catch(e) {
+        out.textContent = '✗ ' + e.message;
+      }
+    }
+
+    function loadCurrentBuild(){
+      fetch('version.json?t=' + Date.now()).then(function(r){ return r.json(); }).then(function(j){
+        state.currentBuild = parseInt(j.build, 10) || 0;
+      }).catch(function(){}).then(function(){
+        var label = state.currentBuild ? 'الإصدار الحالي: build ' + state.currentBuild : 'الإصدار الحالي: نسخة تطوير (غير مبنية من GitHub)';
+        $('versionInfo').textContent = label;
+        var sub = document.querySelector('.brand-sub');
+        if (sub && state.currentBuild) sub.textContent = 'مساعد برمجة احترافي • build ' + state.currentBuild;
+      });
+    }
+
+    $('toggleGhTokenVisibility').addEventListener('click', function(){
+      var inp = $('ghTokenInput');
+      var isPwd = inp.type === 'password';
+      inp.type = isPwd ? 'text' : 'password';
+      this.textContent = isPwd ? 'إخفاء' : 'إظهار';
+    });
+    $('ghTestBtn').addEventListener('click', testGithub);
+    $('checkUpdateBtn').addEventListener('click', function(){
+      readGithubInputs();
+      persistSettings();
+      closeSettings();
+      checkForUpdate(true);
+    });
+    $('revertBtn').addEventListener('click', function(){ readGithubInputs(); persistSettings(); revertLastCommit(); });
+    updateBtnEl.addEventListener('click', startUpdate);
+
+    loadSettings();
+    loadCurrentBuild();
+    if (REPO_RE.test(state.ghRepo)) setTimeout(function(){ checkForUpdate(false); }, 1500);
 
     els.composer.addEventListener('submit', function(e){
       e.preventDefault();
@@ -1916,8 +2770,11 @@
       state.apiKey = els.apiKeyInput.value.trim();
       state.model = els.modelInput.value.trim() || 'gemini-3.6-flash';
       state.systemPrompt = els.systemPromptInput.value;
+      readGithubInputs();
+      persistSettings();
       updateStatus();
       closeSettings();
+      if (REPO_RE.test(state.ghRepo)) checkForUpdate(false);
     });
 
     els.clearChatBtn.addEventListener('click', function(){
