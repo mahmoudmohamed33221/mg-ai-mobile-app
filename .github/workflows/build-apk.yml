@@ -23,15 +23,18 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Dependencies & Capacitor
+      - name: Initialize Project & Web Assets
         run: |
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
+          mkdir -p www
+          echo "<html><head><title>MG.ai</title></head><body><h1>MG.ai CODER Mobile App</h1></body></html>" > www/index.html
           npx cap init MG-ai com.mg.ai.app --web-dir www
 
-      - name: Add Android Platform
+      - name: Add Android Platform & Sync
         run: |
           npx cap add android
+          npx cap sync android
 
       - name: Build Debug APK
         run: |
