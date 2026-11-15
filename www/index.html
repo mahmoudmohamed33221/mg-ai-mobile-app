@@ -1758,8 +1758,9 @@
       }
 
       col.appendChild(bubble);
-      if (role === 'user' && !msg.error && content && content.trim()) {
+      if (!msg.error && content && content.trim()) {
         col.appendChild(buildMessageActions(msg));
+        msg.actionsAdded = true;
       }
       row.appendChild(col);
       els.messagesList.appendChild(row);
