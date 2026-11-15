@@ -615,6 +615,7 @@
     <div class="field">
       <label for="voiceSelect">صوت القراءة (Text to Speech)</label>
       <select id="voiceSelect"></select>
+      <button type="button" id="refreshVoicesBtn" style="margin-top:5px;width:100%;">🔄 تحديث قائمة الأصوات</button>
       <div class="hint" id="voiceHint">القائمة دي بتعرض كل الأصوات المتاحة فعليًا على جهازك ومتصفحك، ومرتبة عشان الأصوات العربية (وخصوصًا المصري لو موجود 🟢) تطلع فوق. لو مش لاقي صوت عربي خالص، جرّب تفتح الصفحة من Chrome على أندرويد، أو ضيف لغة عربية لصوت النظام من إعدادات جهازك.</div>
     </div>
 
@@ -2736,6 +2737,9 @@
       persistSettings();
       closeSettings();
       checkForUpdate(true);
+    });
+    $('refreshVoicesBtn').addEventListener('click', function(){
+      loadVoiceList();
     });
     $('revertBtn').addEventListener('click', function(){ readGithubInputs(); persistSettings(); revertLastCommit(); });
     updateBtnEl.addEventListener('click', startUpdate);
