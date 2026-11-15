@@ -996,15 +996,19 @@
           return;
         }
         var utter = new SpeechSynthesisUtterance(chunks[chunkIdx]);
-        if (voice) { utter.voice = voice; utter.lang = voice.lang; }
-        utter.pitch = preset.pitch;
-        utter.rate = preset.rate * (isNaN(rateSlider) ? 1 : rateSlider);
+        // تعديل: السماح للنظام باختيار الصوت الافتراضي إذا لم يكن هناك صوت محدد
+        if (voice && voice.name) { 
+          utter.voice = voice; 
+          utter.lang = voice.lang; 
+        }
+        utter.pitch = preset.pitch || 1;
+        utter.rate = (preset.rate || 1) * (isNaN(rateSlider) ? 1 : rateSlider);
         chunkIdx++;
         utter.onend = function(){ speakNextChunk(); };
         utter.onerror = function(e){
+          console.error("TTS Error:", e);
           currentSpeakingMessageId = null;
           refreshSpeakButtonsUI();
-          if (opts.onError) opts.onError(e && e.error);
         };
         window.speechSynthesis.speak(utter);
       }
