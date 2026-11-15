@@ -525,8 +525,8 @@
     <form class="composer" id="composer">
       <div class="attachments-preview" id="attachmentsPreview" hidden></div>
       <div class="composer-row">
-        <button type="button" class="icon-btn attach-btn" id="attachBtn" aria-label="إرفاق صورة أو فيديو" title="إرفاق صورة أو فيديو">📎</button>
-        <input type="file" id="fileInput" accept="image/*,video/*" multiple hidden>
+        <button type="button" class="icon-btn attach-btn" id="attachBtn" aria-label="إرفاق ملف أو صورة" title="إرفاق ملف أو صورة">📎</button>
+        <input type="file" id="fileInput" accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip" multiple hidden>
         <button type="button" class="icon-btn attach-btn" id="voiceModeBtn" aria-label="المحادثة الصوتية" title="المحادثة الصوتية">🎙️</button>
         <textarea id="userInput" rows="1" placeholder="اكتب رسالتك او طلبك"></textarea>
         <button type="submit" class="send-btn" id="sendBtn" aria-label="إرسال">
@@ -1523,7 +1523,11 @@
       });
     }
 
-    els.attachBtn.addEventListener('click', function(){ els.fileInput.click(); });
+    els.attachBtn.addEventListener('click', function(){ 
+      // دعم أنواع ملفات شاملة وصور وكاميرا
+      els.fileInput.accept = "image/*,video/*,.pdf,.doc,.docx,.txt,.zip,audio/*";
+      els.fileInput.click(); 
+    });
 
     els.fileInput.addEventListener('change', function(){
       var files = Array.prototype.slice.call(els.fileInput.files || []);
