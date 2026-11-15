@@ -1,13 +1,28 @@
-name: Build Android APK
+name: Build & Release Android APK
 
 on:
   push:
     branches: [ main, master ]
+    paths-ignore:
+      - 'README.md'
   workflow_dispatch:
+
+permissions:
+  contents: write
+
+# لو اتعمل commit جديد والبناء القديم لسه شغال، القديم بيتلغي والجديد بس هو اللي يكمّل
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+      KS_FILE: keystore/mg-ai.jks
+      KS_ALIAS: mgai
+      KS_PASS: ${{ secrets.KEYSTORE_PASSWORD || 'mgai-2026-release' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -18,15 +33,23 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Set up Node.js Latest
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
+      - name: Check web code (syntax)
+        run: node scripts/check-web.js
+
+      - name: Stamp build number
+        run: |
+          echo "{\"build\": ${BUILD_NUMBER}}" > www/version.json
+          cat www/version.json
+
       - name: Initialize Project & Sync Web Assets
         run: |
           npm init -y
-          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
+          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest @capacitor/browser@latest
           npx cap init MG-ai com.mg.ai.app --web-dir www
 
       - name: Add Android Platform & Sync
@@ -34,14 +57,37 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: Build Debug APK
+      - name: Set versionCode / versionName
+        run: |
+          F=$(ls android/app/build.gradle android/app/build.gradle.kts 2>/dev/null | head -1)
+          sed -i -E "s/(versionCode[ =]+)[0-9]+/\1${BUILD_NUMBER}/" "$F"
+          sed -i -E "s/(versionName[ =]+)\"[^\"]*\"/\1\"1.0.${BUILD_NUMBER}\"/" "$F"
+          grep -nE "versionCode|versionName" "$F"
+          grep -Eq "versionCode[ =]+${BUILD_NUMBER}\b" "$F" || (echo "versionCode patch failed" && exit 1)
+
+      - name: Build release APK (unsigned)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+      - name: Sign APK with the fixed key
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          UNSIGNED=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          "$BT/zipalign" -p -f 4 "$UNSIGNED" aligned.apk
+          "$BT/apksigner" sign \
+            --ks "$KS_FILE" --ks-key-alias "$KS_ALIAS" \
+            --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
+            --out MG-ai.apk aligned.apk
+          "$BT/apksigner" verify --print-certs MG-ai.apk
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          tag_name: build-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: MG.ai build ${{ github.run_number }}
+          body: ${{ github.event.head_commit.message }}
+          files: MG-ai.apk
+          make_latest: true
