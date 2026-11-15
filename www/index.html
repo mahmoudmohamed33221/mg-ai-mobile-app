@@ -995,19 +995,33 @@
           if (opts.onEnd) opts.onEnd();
           return;
         }
+        
+        // تنظيف أي نطق سابق
+        window.speechSynthesis.cancel();
+        
         var utter = new SpeechSynthesisUtterance(chunks[chunkIdx]);
-        // استخدام الصوت الافتراضي للنظام مباشرة
+        // محاولة استخدام الصوت المختار، وإذا فشل، النظام سيختار الافتراضي تلقائياً
+        if (voice) utter.voice = voice;
         utter.pitch = preset.pitch || 1;
         utter.rate = (preset.rate || 1) * (isNaN(rateSlider) ? 1 : rateSlider);
+        
         chunkIdx++;
-        utter.onend = function(){ speakNextChunk(); };
+        utter.onend = function(){ setTimeout(speakNextChunk, 100); };
         utter.onerror = function(e){
           console.error("TTS Error:", e);
-          currentSpeakingMessageId = null;
-          refreshSpeakButtonsUI();
+          // محاولة أخيرة بدون تحديد صوت
+          if (utter.voice) {
+             utter.voice = null;
+             window.speechSynthesis.speak(utter);
+          } else {
+             currentSpeakingMessageId = null;
+             refreshSpeakButtonsUI();
+          }
         };
         window.speechSynthesis.speak(utter);
       }
+      // تنشيط المحرك قبل البدء
+      window.speechSynthesis.cancel();
       speakNextChunk();
     }
 
