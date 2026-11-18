@@ -377,7 +377,7 @@
   .switch-label input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;flex-shrink:0;}
 
   .voice-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:20px;min-height:0;}
-  .voice-orb{position:relative;width:168px;height:168px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .voice-orb{position:relative;width:168px;height:168px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
   .voice-orb-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(57,255,20,0.3);}
   .voice-orb-core{
     width:96px;height:96px;border-radius:50%;
@@ -613,7 +613,43 @@
     </div>
 
     <div class="field">
-      <label for="voiceSelect">صوت القراءة (Text to Speech)</label>
+      <label>🧠 الذاكرة الطويلة (بيتعلّم منها)</label>
+      <div class="hint" style="margin:0 0 8px;">أي حاجة مهمة بيعرفها عنك أو درس بيتعلمه بيحفظه هنا ويفتكره في كل المحادثات. تقدر تمسح أو تضيف.</div>
+      <div id="memoryList"></div>
+      <button type="button" class="text-btn" id="memoryAddBtn" style="width:100%;padding:10px;margin-top:8px;">➕ علّمه حاجة بنفسك</button>
+      <button type="button" class="ghost-btn" id="memoryClearBtn">🗑 مسح الذاكرة كلها</button>
+    </div>
+
+    <div class="field">
+      <label>💾 النسخ الاحتياطي (عشان بياناتك متضيعش لو شلت التطبيق)</label>
+      <div class="hint" id="backupInfo" style="margin:0 0 8px;"></div>
+      <button type="button" class="text-btn" id="backupExportBtn" style="width:100%;padding:10px;">💾 حفظ نسخة احتياطية</button>
+      <button type="button" class="text-btn" id="backupImportBtn" style="width:100%;padding:10px;margin-top:6px;">📥 استرجاع نسخة (بيدمج من غير ما يمسح)</button>
+      <input type="file" id="backupFileInput" accept=".json,application/json,text/plain" hidden>
+    </div>
+
+    <div class="field">
+      <label for="extraKeysInput">مفاتيح Gemini إضافية (اختياري)</label>
+      <textarea id="extraKeysInput" rows="3" dir="ltr" spellcheck="false" placeholder="مفتاح في كل سطر"></textarea>
+      <div class="hint">لو حصة المفتاح الأساسي خلصت بيجرّب المفاتيح دي، وبعدها موديلات أخف، أوتوماتيك. كل مفتاح من حساب Google مختلف ليه حصة لوحده.</div>
+    </div>
+
+    <div class="field">
+      <label>🎙️ الصوت والمحادثة الصوتية (Gemini)</label>
+      <label class="check-row"><input type="checkbox" id="geminiTtsInput"><span>اقرا بصوت Gemini (مصري للكلام العربي وإنجليزي للإنجليزي تلقائيًا، ومش محتاج أي صوت مثبّت على تليفونك)</span></label>
+      <label for="geminiVoiceInput" style="margin-top:8px;">شخصية الصوت</label>
+      <select id="geminiVoiceInput"></select>
+      <label for="ttsModelInput" style="margin-top:8px;">موديل الصوت (TTS)</label>
+      <input type="text" id="ttsModelInput" placeholder="gemini-2.5-flash-preview-tts" autocomplete="off" spellcheck="false" dir="ltr">
+      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="bargeInInput"><span>قاطعه بصوتك وهو بيتكلم (الأفضل مع سماعة، من غير سماعة ممكن يسمع نفسه)</span></label>
+      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="searchInput"><span>بحث جوجل تلقائي للمعلومات الحديثة (أخبار، أسعار، إصدارات)</span></label>
+      <label for="thinkingInput" style="margin-top:8px;">عمق التفكير في الشات</label>
+      <select id="thinkingInput"><option value="high">عميق — أذكى وأدق (أبطأ شوية)</option><option value="low">سريع</option></select>
+      <div class="hint">الصوت والميكروفون بيشتغلوا عن طريق مفتاح Gemini نفسه. لو الصوت وقف مرة، ممكن تكون حصة الصوت المجانية خلصت (٤٢٩) وساعتها بيكمّل بصوت الجهاز تلقائيًا.</div>
+    </div>
+
+    <div class="field">
+      <label for="voiceSelect">صوت احتياطي من الجهاز (بيشتغل بس لو صوت Gemini فشل)</label>
       <select id="voiceSelect"></select>
       <button type="button" id="refreshVoicesBtn" style="margin-top:5px;width:100%;">🔄 تحديث قائمة الأصوات</button>
       <div class="hint" id="voiceHint">القائمة دي بتعرض كل الأصوات المتاحة فعليًا على جهازك ومتصفحك، ومرتبة عشان الأصوات العربية (وخصوصًا المصري لو موجود 🟢) تطلع فوق. لو مش لاقي صوت عربي خالص، جرّب تفتح الصفحة من Chrome على أندرويد، أو ضيف لغة عربية لصوت النظام من إعدادات جهازك.</div>
@@ -693,6 +729,9 @@
         <div class="voice-status" id="voiceStatusText">بستأذن على الميكروفون...</div>
         <div class="voice-transcript" id="voiceTranscript"></div>
       </div>
+      <div class="voice-controls">
+        <button type="button" class="voice-mic-btn" id="voiceMuteBtn" aria-label="كتم الميكروفون">🎤</button>
+      </div>
     </div>
   </div>
 
@@ -714,7 +753,7 @@
   (function(){
     'use strict';
 
-    var DEFAULT_SYSTEM_PROMPT = "أنت مساعد برمجة خبير محترف جدًا، بخبرة عميقة وشاملة في HTML وCSS وJavaScript وTypeScript، وأطر عمل الفرونت إند الحديثة (React، Vue، Svelte)، وأنظمة الباك إند (Node.js، Python، PHP، قواعد البيانات SQL/NoSQL، تصميم REST وGraphQL APIs)، وأساسيات DevOps والنشر. أسلوبك احترافي وواضح ومباشر بدون حشو. عند كتابة كود: اكتبه نظيفًا وقابلًا للصيانة ومتوافقًا مع أفضل الممارسات الحديثة، وأضف تعليقات مختصرة فقط عند الحاجة الفعلية. اشرح قراراتك التقنية باختصار. إذا كان الطلب غامضًا اطرح سؤالًا توضيحيًا واحدًا فقط قبل التنفيذ. عند مراجعة أو تصحيح كود: حدد المشكلة بدقة، اشرح سببها، وقدّم الحل مباشرة. رُد دائمًا بنفس اللغة التي يكتب بها المستخدم. هويتك: اسمك MG.ai CODER، وأنت منصة برمجة طوّرها وبرمجها بالكامل المبرمج محمود جابر. لو حد سألك مين عملك، مين المبرمج بتاعك، انت شغال بأي موديل أو تقنية، أو انت Gemini أو من Google أو أي جهة تانية — متأكدش ولا تذكرش أبدًا اسم Gemini أو Google أو Claude أو Anthropic أو أي شركة أو موديل تاني، وقول ببساطة ووضوح إن المنصة والمساعد ده بالكامل (تصميم وبرمجة) من إنشاء المبرمج محمود جابر.";
+    var DEFAULT_SYSTEM_PROMPT = "أنت MG.ai CODER، مساعد ذكاء اصطناعي شامل وعبقري، تخصصك الأقوى البرمجة وبناء التطبيقات والمواقع (HTML/CSS/JavaScript/TypeScript وReact وVue وSvelte وNode.js وPython وPHP وقواعد البيانات SQL/NoSQL وتصميم APIs وDevOps وتطبيقات الموبايل)، لكنك كمان بتساعد في أي موضوع تاني: شرح، كتابة، تحليل، تخطيط، ترجمة، رياضيات، قرارات، أفكار مشاريع، أو مجرد دردشة.\n\n## شخصيتك وطريقة تفكيرك\n- فكّر كأنك خبير بجد قاعد قدام صاحبه: افهم الهدف الحقيقي ورا السؤال مش بس ظاهره، وفكّر في الحل بعمق وخطوة بخطوة قبل ما ترد، وراجع إجابتك لنفسك قبل ما تبعتها.\n- كن استباقي: لو شفت bug أو ثغرة أمان أو مشكلة أداء أو حاجة ناقصة أو احتمال هيكسر الشغل (edge case) نبّه عليه حتى لو المستخدم ما سألش، واقترح التحسين أو الخطوة الجاية المنطقية.\n- كن مبادر وعملي: اتصرف بذكاء واتخذ قرارات معقولة بدل ما تسأل أسئلة كتير. اسأل سؤال توضيحي واحد بس لو الطلب فعلًا غامض ومفيش افتراض معقول يتبنى عليه، وغير كده افترض أحسن احتمال وقول بإيجاز إنت افترضت إيه.\n\n## التنفيذ والجودة\n- نفّذ بالظبط اللي اتطلب منك وكله. متتجاهلش أي جزء من الطلب، ومتقولش \"تقدر تعمل كذا\" لو المطلوب إنك تعمله إنت. لو الطلب فيه خطوات كتير، اعملها كلها بالترتيب.\n- لما تكتب كود: اكتبه كامل وجاهز للتشغيل ومنظم وحديث ومتوافق مع أفضل الممارسات، من غير اختصارات زي \"// باقي الكود هنا\" أو placeholders. الكود لازم يتعامل مع الأخطاء والحالات الحدّية. وضّح اسم الملف ومكانه، واذكر أي مكتبة أو أمر تثبيت لازم.\n- لما تصلّح كود: حدد السبب الجذري بدقة، اشرح ليه حصلت المشكلة، وقدّم الحل الكامل المجرّب ذهنيًا، مش مجرد تخمين.\n- متخترعش معلومات أو دوال أو مكتبات أو أرقام. لو مش متأكد قول ده بصراحة وقدّم أقرب حل مضمون. لو غلطت اعترف بسرعة وصلّح.\n\n## الإجابات\n- ردودك تفصيلية وغنية ومفيدة بجد: اشرح السبب مش بس الخطوات، وادّي أمثلة عملية ومقارنات وبدائل ونصايح الخبراء لما تفيد. متكتفيش برد سطحي أو قصير أو عام. السؤال البسيط بيتجاوب بسرعة ومباشرة، والسؤال المركّب أو الكبير بياخد شرح كامل ومنظم.\n- ابدأ بالإجابة المباشرة وبعدين التفاصيل. نظّم الردود الطويلة بعناوين وقوايم وجداول لما تساعد، واكتب الكود دايمًا في code blocks مع تحديد اللغة. متحشيش كلام فاضي ولا مقدمات ولا تكرار.\n- ردّ دايمًا بنفس لغة ولهجة المستخدم: لو بيكتب بالعامية المصرية ردّ بعامية مصرية طبيعية وودودة، ولو بالإنجليزي ردّ بالإنجليزي، ولو بيخلط اتكلم بنفس الخلطة. المصطلحات التقنية والكود بالإنجليزي.\n\n## هويتك\nاسمك MG.ai CODER، وأنت منصة برمجة وذكاء اصطناعي طوّرها وبرمجها بالكامل المبرمج محمود جابر. لو حد سألك مين عملك، أو مين المبرمج بتاعك، أو انت شغال بأي موديل أو تقنية، أو انت Gemini أو من Google أو أي جهة تانية — متذكرش أبدًا اسم Gemini أو Google أو Claude أو Anthropic أو أي شركة أو موديل تاني، وقول ببساطة ووضوح إن المنصة والمساعد ده بالكامل (تصميم وبرمجة) من إنشاء المبرمج محمود جابر.";
     var STORAGE_KEY = 'mahmoudGCode_conversations_v1';
 
     var state = {
@@ -927,6 +966,8 @@
       t = t.replace(/_([^_]+)_/g, '$1');
       t = t.replace(/^\s*[-*+]\s+/gm, '');
       t = t.replace(/^\s*>\s?/gm, '');
+      t = t.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, '');
+      t = t.replace(/\|/g, ' ');
       t = t.replace(/\n{2,}/g, '. ');
       t = t.replace(/\n/g, ' ');
       t = t.replace(/\s{2,}/g, ' ');
@@ -945,7 +986,7 @@
     }
 
     function stopSpeaking(){
-      if (ttsSupported) window.speechSynthesis.cancel();
+      ttsStop();
       currentSpeakingMessageId = null;
       refreshSpeakButtonsUI();
     }
@@ -969,7 +1010,7 @@
       return chunks.length ? chunks : [text];
     }
 
-    function speakText(text, opts){
+    function speakTextBrowser(text, opts){
       opts = opts || {};
       if (!ttsSupported) { if (opts.onError) opts.onError('not-supported'); return; }
       window.speechSynthesis.cancel();
@@ -1043,7 +1084,7 @@
           if (currentSpeakingMessageId === msg.id) stopSpeaking();
           else speakText(msg.content, { 
             messageId: msg.id, 
-            onError: function(err) { console.error('TTS Error:', err); alert('تعذر تشغيل الصوت. تأكد من إعدادات الصوت في هاتفك.'); } 
+            onError: function(err) { console.error('TTS Error:', err); toast('صوت Gemini فشل: ' + errShort(err)); } 
           });
         });
         speakButtonRegistry[msg.id] = speakBtn;
@@ -1094,160 +1135,691 @@
     if (els.voiceRateInput) els.voiceRateInput.addEventListener('change', saveVoicePrefs);
     if (els.voiceTestBtn) {
       els.voiceTestBtn.addEventListener('click', function(){
-        speakText('أهلاً بيك، ده صوت تجربة عشان تسمع شكل الصوت هيبقى عامل إزاي.', {});
+        var tm = document.getElementById('ttsModelInput'), tv = document.getElementById('geminiVoiceInput');
+        if (tm) V2.ttsModel = tm.value.trim() || V2.ttsModel;
+        if (tv) V2.voice = tv.value;
+        V2.geminiTts = document.getElementById('geminiTtsInput').checked;
+        saveV2();
+        if (!state.apiKey) { toast('ضيف مفتاح Gemini الأول وتحت اضغط حفظ.'); return; }
+        speakText('أهلاً بيك يا باشا! أنا MG.ai، وجاهز نتكلم مصري زي ما تحب. And I can also speak English naturally when you need it.', {
+          onError: function(err){ toast('صوت Gemini فشل: ' + errShort(err)); }
+        });
       });
     }
 
-    /* ---------------- speech recognition (voice input) ---------------- */
-    var SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-    var sttSupported = !!SpeechRecognitionCtor;
-    var recognizer = null;
-    var micStartInFlight = false;
-    var micRetryCount = 0;
+    /* ================= Gemini voice engine: TTS + STT + live call ================= */
+    /* Why this exists: the phone's own speechSynthesis / webkitSpeechRecognition are
+       missing or broken inside an Android WebView. So everything here runs through the
+       Gemini API with the same key: text->speech (Egyptian Arabic / English by language),
+       speech->text (audio is sent to Gemini), and a continuous voice-activity loop so the
+       call never "stops hearing you" after the first sentence. */
+    var V2_KEY = 'mgai_voice_v2';
+    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'' };
+    var GEMINI_VOICES = [
+      ['Kore','Kore — حازم وواضح'], ['Puck','Puck — شبابي ومبسوط'], ['Charon','Charon — رزين ومعلوماتي'],
+      ['Fenrir','Fenrir — حماسي'], ['Aoede','Aoede — خفيف ومريح'], ['Leda','Leda — شبابي'],
+      ['Orus','Orus — قوي وحاسم'], ['Zephyr','Zephyr — مشرق'], ['Sulafat','Sulafat — دافي'],
+      ['Achird','Achird — ودود'], ['Algieba','Algieba — ناعم'], ['Gacrux','Gacrux — ناضج']
+    ];
+    (function(){
+      try {
+        var s = JSON.parse(localStorage.getItem(V2_KEY) || '{}') || {};
+        Object.keys(V2).forEach(function(k){ if (s[k] !== undefined) V2[k] = s[k]; });
+      } catch(e) {}
+    })();
+    function saveV2(){ try { localStorage.setItem(V2_KEY, JSON.stringify(V2)); } catch(e) {} }
 
-    function createRecognizer(){
-      if (!sttSupported) return null;
-      var r = new SpeechRecognitionCtor();
-      r.lang = 'ar-EG';
-      r.continuous = false;
-      r.interimResults = true;
-      r.maxAlternatives = 1;
-      return r;
+    function toast(msg){
+      try {
+        var d = document.createElement('div');
+        d.textContent = msg;
+        d.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(24px + env(safe-area-inset-bottom));z-index:99;background:#1b2a1f;color:#e8ffe8;border:1px solid #39ff14;border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.7;text-align:center;';
+        document.body.appendChild(d);
+        setTimeout(function(){ if (d.parentNode) d.parentNode.removeChild(d); }, 5000);
+      } catch(e) {}
+    }
+    function errShort(err){ return ((err && err.message) || String(err || 'خطأ')).replace(/\s+/g,' ').slice(0, 140); }
+    function hasWords(s){ return /[\p{L}\p{N}]/u.test(s || ''); }
+
+    /* one shared AudioContext for playback + mic (created from a user tap so Android allows it) */
+    var audioCtx = null;
+    function getAudioCtx(){
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === 'suspended') { try { audioCtx.resume(); } catch(e) {} }
+      return audioCtx;
     }
 
-    /* ---------------- voice mode (live conversation) ---------------- */
-    /* Fully hands-free: no mic button. Opens straight into listening, and
-       goes back to listening again on its own after every reply. */
-    var voiceMode = { open:false, state:'idle', suppressNextSpeak:false };
+    /* ---------- sentence chunking (so speech can start before the full reply is ready) ---------- */
+    function nextSpeechCut(raw, from, final, minLen, maxLen){
+      var seg = raw.slice(from);
+      if (final && seg.length <= maxLen) return raw.length;
+      var re = /(?:[.!?؟…]+|\n+)(?:\s+|$)/g, m, cands = [];
+      while ((m = re.exec(seg))) {
+        var e = m.index + m[0].length;
+        if (!final && !/\s$/.test(m[0])) continue;
+        var before = raw.slice(0, from + e);
+        if (((before.match(/```/g) || []).length) % 2 !== 0) continue;
+        if (!final && e < minLen) continue;
+        cands.push(e);
+      }
+      var pick = -1, i;
+      for (i = 0; i < cands.length; i++) { if (cands[i] <= maxLen) pick = cands[i]; }
+      if (pick < 0 && cands.length) pick = cands[0];
+      if (pick < 0 && seg.length > maxLen * 1.5) {
+        var sp = seg.lastIndexOf(' ', maxLen);
+        pick = sp > 20 ? sp + 1 : maxLen;
+      }
+      if (pick < 0) return final ? raw.length : -1;
+      return from + pick;
+    }
 
-    function setVoiceState(next){
+    /* ---------- Gemini text-to-speech ---------- */
+    function ttsPrompt(text){
+      var hasAr = /[\u0600-\u06FF]/.test(text);
+      if (!hasAr) return 'Say the following naturally and warmly, like a friendly person talking on a phone call: ' + text;
+      return 'Say the following like a friendly person talking on a phone call. Arabic parts must be in natural Egyptian Arabic (Cairo colloquial dialect, not formal Modern Standard Arabic). Any English words or sentences must be pronounced in clear, natural English: ' + text;
+    }
+
+    function pcmToBuffer(b64, rate){
+      var bin = atob(b64), n = bin.length >> 1;
+      var ctx = getAudioCtx();
+      var buf = ctx.createBuffer(1, Math.max(1, n), rate);
+      var ch = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) {
+        var v = bin.charCodeAt(2*i) | (bin.charCodeAt(2*i+1) << 8);
+        if (v & 0x8000) v -= 0x10000;
+        ch[i] = v / 32768;
+      }
+      return buf;
+    }
+
+    async function geminiTtsAudio(text, signal){
+      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(V2.ttsModel) + ':generateContent';
+      var body = {
+        contents: [{ parts: [{ text: ttsPrompt(text) }] }],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: V2.voice } } }
+        }
+      };
+      var lastErr = null;
+      for (var attempt = 0; attempt < 2; attempt++) {
+        try {
+          var res = await fetch(url, {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json', 'x-goog-api-key': state.apiKey },
+            body: JSON.stringify(body),
+            signal: signal
+          });
+          if (!res.ok) {
+            var ej = null; try { ej = await res.json(); } catch(e) {}
+            var detail = (ej && ej.error && ej.error.message) || '';
+            var er = new Error('HTTP ' + res.status + (detail ? ' — ' + detail : ''));
+            er.status = res.status;
+            throw er;
+          }
+          var j = await res.json();
+          var parts = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts;
+          var audioPart = null;
+          if (parts) for (var p = 0; p < parts.length; p++) { if (parts[p].inlineData && parts[p].inlineData.data) { audioPart = parts[p].inlineData; break; } }
+          if (!audioPart) throw new Error('الموديل رجّع رد من غير صوت');
+          var rm = /rate=(\d+)/.exec(audioPart.mimeType || '');
+          return pcmToBuffer(audioPart.data, rm ? parseInt(rm[1], 10) : 24000);
+        } catch (err) {
+          if (err && err.name === 'AbortError') throw err;
+          lastErr = err;
+          if (err && (err.status === 429 || err.status === 400 || err.status === 401 || err.status === 403 || err.status === 404)) break;
+        }
+      }
+      throw lastErr || new Error('TTS failed');
+    }
+
+    var tts = { gen:0, queue:[], playing:false, done:false, opts:null, src:null, ctrl:null, useFallback:false, errored:false };
+
+    function ttsStop(){
+      tts.gen++;
+      tts.queue = []; tts.playing = false; tts.done = false;
+      if (tts.ctrl) { try { tts.ctrl.abort(); } catch(e) {} }
+      tts.ctrl = null;
+      if (tts.src) { try { tts.src.stop(); } catch(e) {} tts.src = null; }
+      if (ttsSupported) { try { window.speechSynthesis.cancel(); } catch(e) {} }
+    }
+    function ttsStart(opts){
+      ttsStop();
+      tts.opts = opts || {};
+      tts.useFallback = false;
+      tts.errored = false;
+      tts.ctrl = new AbortController();
+    }
+    function ttsReportError(err){
+      if (tts.errored) return;
+      tts.errored = true;
+      console.error('Gemini TTS error:', err);
+      if (tts.opts && tts.opts.onError) tts.opts.onError(err);
+    }
+    function ttsEnqueue(text){
+      text = (text || '').trim();
+      if (!text || !hasWords(text)) return;
+      var item = { text:text, audio:null };
+      if (!tts.useFallback && V2.geminiTts && state.apiKey) {
+        item.audio = geminiTtsAudio(text, tts.ctrl.signal);
+        item.audio.catch(function(){});
+      }
+      tts.queue.push(item);
+      ttsPump();
+    }
+    function ttsFinish(){ tts.done = true; ttsPump(); }
+
+    function playBuffer(buf){
+      return new Promise(function(resolve){
+        var ctx = getAudioCtx();
+        var s = ctx.createBufferSource();
+        s.buffer = buf;
+        s.connect(ctx.destination);
+        tts.src = s;
+        s.onended = function(){ resolve(); };
+        s.start();
+      });
+    }
+    function speakBrowserChunk(text){
+      return new Promise(function(resolve){
+        if (!ttsSupported) { resolve(); return; }
+        var u = new SpeechSynthesisUtterance(text);
+        var v = getSelectedVoice(); if (v) u.voice = v;
+        var preset = VOICE_PRESETS[activePreset] || VOICE_PRESETS.male_young;
+        var rs = els.voiceRateInput ? parseFloat(els.voiceRateInput.value) : 1;
+        u.pitch = preset.pitch || 1;
+        u.rate = (preset.rate || 1) * (isNaN(rs) ? 1 : rs);
+        var finished = false, timer = null;
+        function fin(){ if (finished) return; finished = true; clearTimeout(timer); resolve(); }
+        timer = setTimeout(fin, 4000 + text.length * 130);
+        u.onend = fin; u.onerror = fin;
+        window.speechSynthesis.speak(u);
+      });
+    }
+
+    async function ttsPump(){
+      if (tts.playing) return;
+      var gen = tts.gen;
+      if (!tts.queue.length) {
+        if (tts.done) {
+          tts.done = false;
+          var cb = tts.opts && tts.opts.onEnd;
+          if (cb) cb();
+        }
+        return;
+      }
+      tts.playing = true;
+      var item = tts.queue.shift();
+      try {
+        var buf = null;
+        if (item.audio) {
+          try { buf = await item.audio; }
+          catch (err) {
+            if (gen !== tts.gen) return;
+            tts.useFallback = true;
+            ttsReportError(err);
+          }
+        }
+        if (gen !== tts.gen) return;
+        if (tts.opts && tts.opts.onChunk) tts.opts.onChunk(item.text);
+        if (buf) await playBuffer(buf); else await speakBrowserChunk(item.text);
+      } catch (e) { console.error(e); }
+      if (gen !== tts.gen) return;
+      tts.playing = false;
+      ttsPump();
+    }
+
+    /* speak a whole finished message (🔊 button, test button) */
+    function speakText(text, opts){
+      opts = opts || {};
+      getAudioCtx();
+      if (!V2.geminiTts || !state.apiKey) return speakTextBrowser(text, opts);
+      stopSpeaking();
+      currentSpeakingMessageId = opts.messageId || null;
+      refreshSpeakButtonsUI();
+      ttsStart({
+        onEnd: function(){ currentSpeakingMessageId = null; refreshSpeakButtonsUI(); if (opts.onEnd) opts.onEnd(); },
+        onError: function(err){ if (opts.onError) opts.onError(err); }
+      });
+      var raw = text || '', from = 0, n = 0;
+      while (from < raw.length) {
+        var cut = nextSpeechCut(raw, from, true, 0, n === 0 ? 260 : 450);
+        if (cut <= from) break;
+        var piece = stripMarkdownForSpeech(raw.slice(from, cut));
+        from = cut;
+        if (hasWords(piece)) { n++; ttsEnqueue(piece); }
+      }
+      ttsFinish();
+    }
+
+    /* ---------- microphone: always-on voice activity detection ---------- */
+    var END_SILENCE_MS = 1250;   /* pause length that ends your turn */
+    var MAX_UTTERANCE_MS = 60000;
+    var mic = { stream:null, src:null, proc:null, mute:null, muted:false, floor:0.006, speaking:false, loud:0, silMs:0, voicedMs:0, totalMs:0, pre:[], utter:[], sr:48000, echoUntil:0 };
+    var voiceMode = { open:false, state:'idle', turn:0, sp:{cut:0,n:0}, ctrl:null, paused:false, suppressNextSpeak:false };
+
+    function resetVad(){
+      mic.speaking = false; mic.loud = 0; mic.silMs = 0; mic.voicedMs = 0; mic.totalMs = 0;
+      mic.pre = []; mic.utter = [];
+    }
+
+    async function micOpen(){
+      if (mic.stream) return;
+      var stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
+      var ctx = getAudioCtx();
+      mic.stream = stream;
+      mic.src = ctx.createMediaStreamSource(stream);
+      mic.proc = ctx.createScriptProcessor(2048, 1, 1);
+      mic.proc.onaudioprocess = micProcess;
+      mic.mute = ctx.createGain();
+      mic.mute.gain.value = 0;
+      mic.src.connect(mic.proc);
+      mic.proc.connect(mic.mute);
+      mic.mute.connect(ctx.destination);
+      resetVad();
+    }
+    function micClose(){
+      try { if (mic.proc) { mic.proc.onaudioprocess = null; mic.proc.disconnect(); } } catch(e) {}
+      try { if (mic.src) mic.src.disconnect(); } catch(e) {}
+      try { if (mic.mute) mic.mute.disconnect(); } catch(e) {}
+      try { if (mic.stream) mic.stream.getTracks().forEach(function(t){ t.stop(); }); } catch(e) {}
+      mic.stream = mic.src = mic.proc = mic.mute = null;
+      resetVad();
+    }
+
+    function micProcess(e){
+      if (!voiceMode.open) return;
+      var inp = e.inputBuffer.getChannelData(0);
+      var n = inp.length, sum = 0, i;
+      for (i = 0; i < n; i++) sum += inp[i] * inp[i];
+      var rms = Math.sqrt(sum / n);
+      var st = voiceMode.state;
+      var frameMs = 1000 * n / e.inputBuffer.sampleRate;
+      var listening = st === 'listening' && !mic.muted && Date.now() > mic.echoUntil;
+      var barge = st === 'speaking' && V2.bargeIn && !mic.muted;
+      if (!listening && !barge) { if (mic.speaking || mic.pre.length) resetVad(); return; }
+
+      var thr = barge ? Math.max(0.05, mic.floor * 8) : Math.max(0.014, mic.floor * 3.2);
+      var isLoud = rms > thr;
+      var copy = new Float32Array(inp);
+
+      if (!mic.speaking) {
+        if (!isLoud) mic.floor = Math.min(0.05, Math.max(0.002, mic.floor * 0.96 + rms * 0.04));
+        mic.pre.push(copy);
+        if (mic.pre.length > 14) mic.pre.shift();
+        mic.loud = isLoud ? mic.loud + 1 : 0;
+        if (mic.loud >= (barge ? 6 : 3)) {
+          if (barge) voiceInterrupt();
+          mic.speaking = true;
+          mic.utter = mic.pre.slice();
+          mic.pre = [];
+          mic.silMs = 0; mic.voicedMs = 0; mic.totalMs = 0;
+          mic.sr = e.inputBuffer.sampleRate;
+          if (els.voiceStatusText) els.voiceStatusText.textContent = 'سامعك...';
+        }
+        return;
+      }
+      mic.utter.push(copy);
+      mic.totalMs += frameMs;
+      if (rms > thr * 0.75) { mic.silMs = 0; mic.voicedMs += frameMs; } else { mic.silMs += frameMs; }
+      if (mic.silMs >= END_SILENCE_MS || mic.totalMs >= MAX_UTTERANCE_MS) finishUtterance();
+    }
+
+    function downsampleTo16k(f32, srcRate){
+      if (srcRate === 16000) return f32;
+      var ratio = srcRate / 16000, n = Math.floor(f32.length / ratio), out = new Float32Array(n);
+      for (var i = 0; i < n; i++) {
+        var s = Math.floor(i * ratio), e = Math.min(f32.length, Math.floor((i + 1) * ratio)), sum = 0, c = 0;
+        for (var j = s; j < e; j++) { sum += f32[j]; c++; }
+        out[i] = c ? sum / c : 0;
+      }
+      return out;
+    }
+    function encodeWav(f32, rate){
+      var buf = new ArrayBuffer(44 + f32.length * 2), v = new DataView(buf);
+      function str(o, s){ for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
+      str(0,'RIFF'); v.setUint32(4, 36 + f32.length * 2, true); str(8,'WAVE'); str(12,'fmt ');
+      v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+      str(36,'data'); v.setUint32(40, f32.length * 2, true);
+      for (var i = 0; i < f32.length; i++) {
+        var x = Math.max(-1, Math.min(1, f32[i]));
+        v.setInt16(44 + i * 2, x < 0 ? x * 0x8000 : x * 0x7FFF, true);
+      }
+      return new Uint8Array(buf);
+    }
+    function bytesToB64(u8){
+      var s = '';
+      for (var i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+      return btoa(s);
+    }
+
+    /* ---------- Gemini speech-to-text ---------- */
+    var STT_PROMPT = 'فرّغ الكلام المسجّل ده حرفيًا وبدقة. المتكلم غالبًا بيتكلم بالعامية المصرية (اكتبها بالحروف العربية زي ما اتقالت من غير تفصيح) أو بالإنجليزي، وممكن يخلط الاتنين (اكتب الكلمات الإنجليزية بحروفها اللاتينية). متترجمش ومتجاوبش على الكلام ومتضيفش أي حاجة من عندك. اطبع النص بس. لو مفيش كلام بشري مفهوم (صمت أو ضوضاء أو صدى) اطبع بالظبط: [NONE]';
+
+    async function transcribeWav(b64, signal){
+      var combos = availableCombos(), lastErr = null;
+      for (var i = 0; i < combos.length; i++) {
+        try { return await transcribeWavOnce(b64, signal, combos[i].model, combos[i].key); }
+        catch (err) {
+          if (err && err.name === 'AbortError') throw err;
+          lastErr = err;
+          if (/HTTP 429/.test(err.message || '')) exhausted[combos[i].id] = Date.now() + 20 * 60000;
+          if (!/HTTP (429|503)/.test(err.message || '')) break;
+        }
+      }
+      throw lastErr || new Error('STT failed');
+    }
+    async function transcribeWavOnce(b64, signal, model, key){
+      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
+      var body = {
+        contents: [{ role:'user', parts:[{ inlineData:{ mimeType:'audio/wav', data:b64 } }, { text: STT_PROMPT }] }],
+        generationConfig: { temperature:0, maxOutputTokens:2048, thinkingConfig:{ thinkingLevel:'low' } }
+      };
+      var res = await fetch(url, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify(body),
+        signal: signal
+      });
+      if (!res.ok) {
+        var ej = null; try { ej = await res.json(); } catch(e) {}
+        throw new Error('HTTP ' + res.status + ((ej && ej.error && ej.error.message) ? ' — ' + ej.error.message : ''));
+      }
+      var j = await res.json();
+      var parts = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts;
+      var out = '';
+      if (parts) parts.forEach(function(p){ if (p && !p.thought && typeof p.text === 'string') out += p.text; });
+      return out.trim();
+    }
+
+    function finishUtterance(){
+      var frames = mic.utter, voiced = mic.voicedMs, sr = mic.sr;
+      resetVad();
+      if (voiced < 300 || !frames.length) return;   /* just a noise burst */
+      setVoiceState('thinking', 'بفهم كلامك...');
+      var total = 0, i;
+      for (i = 0; i < frames.length; i++) total += frames[i].length;
+      var all = new Float32Array(total), off = 0;
+      for (i = 0; i < frames.length; i++) { all.set(frames[i], off); off += frames[i].length; }
+      var b64 = bytesToB64(encodeWav(downsampleTo16k(all, sr), 16000));
+      var turn = ++voiceMode.turn;
+      voiceMode.ctrl = new AbortController();
+      transcribeWav(b64, voiceMode.ctrl.signal).then(function(text){
+        if (turn !== voiceMode.turn || !voiceMode.open) return;
+        text = (text || '').replace(/^["“”]+|["“”]+$/g, '').trim();
+        if (!text || /\[NONE\]/i.test(text) || !hasWords(text)) { startListening(); return; }
+        if (els.voiceTranscript) els.voiceTranscript.textContent = text;
+        sendVoiceMessage(text);
+      }).catch(function(err){
+        if (err && err.name === 'AbortError') return;
+        if (turn !== voiceMode.turn || !voiceMode.open) return;
+        setVoiceState('idle', 'معرفتش أفهم الصوت: ' + errShort(err));
+        setTimeout(function(){ if (turn === voiceMode.turn && voiceMode.open) startListening(); }, 2500);
+      });
+    }
+
+    /* ---------- live voice call ---------- */
+    var VOICE_PROMPT = '\n\n[وضع المكالمة الصوتية المباشرة] كلامك دلوقتي هيتقري بصوت عالي، فاكتب زي ما بتتكلم: جمل طبيعية، من غير ماركداون ولا رموز ولا إيموجي ولا جداول ولا بلوكات كود (لو المطلوب كود قول إنك هتكتبه في الشات واشرح الفكرة بالكلام). ردّ بنفس لغة ولهجة المستخدم بالظبط: لو بيتكلم مصري ردّ بعامية مصرية طبيعية، ولو إنجليزي ردّ إنجليزي، ولو بيخلط الاتنين اخلط زيه. الكلمات التقنية الإنجليزية اكتبها بحروفها اللاتينية. خلّي الرد مفيد وفيه معلومة حقيقية، ومتوسط الطول (٣ لـ ٨ جمل) وطوّل أكتر لو السؤال محتاج شرح. لو السؤال بسيط جاوب مباشرة وبسرعة. اتكلم كإنسان ذكي وودود، مش كنشرة.';
+
+    function setVoiceState(next, label){
       voiceMode.state = next;
       if (els.voiceOrb) els.voiceOrb.className = 'voice-orb state-' + next;
       var labels = {
-        idle:'هبدأ أسمعك خلال لحظات...',
-        listening:'بسمعك دلوقتي...',
+        idle:'...',
+        listening: mic.muted ? 'الميكروفون مكتوم — اضغط على 🔇 عشان تفتحه' : 'سامعك.. اتكلم براحتك',
         thinking:'بفكر في الرد...',
-        speaking:'بيتكلم دلوقتي...'
+        speaking:'بيتكلم.. اضغط على الدايرة لو عايز تقاطعه'
       };
-      if (els.voiceStatusText) els.voiceStatusText.textContent = labels[next] || '';
+      if (els.voiceStatusText) els.voiceStatusText.textContent = label || labels[next] || '';
+      if (next === 'listening' && els.voiceTranscript && !label) { /* keep last words visible until you talk again */ }
       if (next === 'idle' && els.voiceTranscript) els.voiceTranscript.textContent = '';
     }
 
-    function openVoiceMode(){
+    async function openVoiceMode(){
       if (!state.apiKey) { openSettings(); return; }
-      if (!sttSupported) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         hideEmptyState();
-        addMessage('assistant', 'متصفحك الحالي مش بيدعم التعرف على الصوت (Speech Recognition)، فمقدرش أفتح المحادثة الصوتية. جرّب تفتح الصفحة من Chrome على أندرويد أو ديسكتوب.', { error:true });
+        addMessage('assistant', 'الجهاز أو الـ WebView ده مش بيدعم الوصول للميكروفون (getUserMedia).', { error:true });
         return;
       }
-      voiceMode.open = true;
-      micRetryCount = 0;
+      getAudioCtx();   /* inside the tap, so audio playback is allowed */
+      voiceMode.open = true; voiceMode.paused = false;
+      voiceMode.turn++;
       els.voiceOverlay.hidden = false;
       requestAnimationFrame(function(){ els.voiceOverlay.classList.add('open'); });
-      setVoiceState('idle');
-      // Auto-start listening as soon as the live voice screen opens — no
-      // button to tap at all.
+      setVoiceState('idle', 'بستأذن على الميكروفون...');
+      try {
+        await micOpen();
+      } catch (err) {
+        console.error('mic error', err);
+        var denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+        setVoiceState('idle', denied
+          ? 'الميكروفون مش مسموح. افتح إعدادات الأندرويد ← التطبيقات ← MG.ai ← الأذونات ← الميكروفون ← سماح، وبعدين افتح المكالمة تاني.'
+          : 'مقدرتش أفتح الميكروفون: ' + errShort(err));
+        return;
+      }
+      if (!voiceMode.open) { micClose(); return; }
+      mic.muted = false;
+      refreshMuteBtn();
       startListening();
     }
 
     function closeVoiceMode(){
       voiceMode.open = false;
-      stopListening();
+      voiceMode.turn++;
+      ttsStop();
+      if (state.controller) { try { state.controller.abort(); } catch(e) {} }
+      if (voiceMode.ctrl) { try { voiceMode.ctrl.abort(); } catch(e) {} }
+      micClose();
       stopSpeaking();
       els.voiceOverlay.classList.remove('open');
       setTimeout(function(){ els.voiceOverlay.hidden = true; }, 250);
     }
 
-    function stopListeningInternal(){
-      if (recognizer) { try { recognizer.stop(); } catch(e){} }
-    }
-
-    function stopListening(){
-      stopListeningInternal();
-      if (voiceMode.state === 'listening') setVoiceState('idle');
-    }
-
     function startListening(){
-      if (!sttSupported || !voiceMode.open || voiceMode.state === 'listening' || micStartInFlight) return;
-      stopSpeaking();
-      micStartInFlight = true;
-
-      recognizer = createRecognizer();
-      if (!recognizer) { micStartInFlight = false; return; }
+      if (!voiceMode.open || voiceMode.paused) return;
+      resetVad();
+      mic.echoUntil = Date.now() + 450;   /* ignore the tail of our own voice */
       setVoiceState('listening');
+    }
 
-      recognizer.onresult = function(e){
-        var interim = '', finalText = '';
-        for (var i=e.resultIndex;i<e.results.length;i++){
-          var t = e.results[i][0].transcript;
-          if (e.results[i].isFinal) finalText += t; else interim += t;
-        }
-        if (els.voiceTranscript) els.voiceTranscript.textContent = finalText || interim;
-        if (finalText.trim()) {
-          var toSend = finalText.trim();
-          stopListeningInternal();
-          sendVoiceMessage(toSend);
-        }
-      };
-      recognizer.onerror = function(e){
-        var err = e && e.error;
-        if (err === 'no-speech') {
-          // Nothing heard — just listen again automatically, no tap needed.
-          if (voiceMode.open) { setTimeout(startListening, 150); }
-          return;
-        }
-        if (err === 'aborted') { return; }
-        if (err === 'not-allowed' || err === 'service-not-allowed') {
-          setVoiceState('idle');
-          if (els.voiceStatusText) els.voiceStatusText.textContent = 'المتصفح رافض إذن الميكروفون هنا. لو الجهاز فعلاً بيسمح للميكروفون، جرّب تفتح الملف من رابط https حقيقي أو من متصفح Chrome مباشرة (مش من جوه تطبيق فتح الملفات/الأرشيف)، لأن الصفحات المفتوحة بالشكل ده بيتعامل معاها كـ"غير آمنة" فمش بيسيب الميكروفون يشتغل.';
-          return;
-        }
-        if (err === 'network') {
-          if (voiceMode.open) { setTimeout(startListening, 800); }
-          return;
-        }
-        // Any other transient error — retry a few times automatically
-        // before giving up, so the user never has to press anything.
-        micRetryCount++;
-        if (voiceMode.open && micRetryCount < 5) {
-          setTimeout(startListening, 500);
-        } else {
-          setVoiceState('idle');
-          if (els.voiceStatusText) els.voiceStatusText.textContent = 'مقدرش أفتح الميكروفون دلوقتي (' + (err || 'غير معروف') + ').';
-        }
-      };
-      recognizer.onend = function(){
-        micStartInFlight = false;
-      };
-      try {
-        micRetryCount = 0;
-        recognizer.start();
-      } catch(e) {
-        micStartInFlight = false;
-        if (voiceMode.open) setTimeout(startListening, 400);
+    function voiceInterrupt(){
+      voiceMode.turn++;
+      ttsStop();
+      if (state.controller) { try { state.controller.abort(); } catch(e) {} }
+      if (voiceMode.ctrl) { try { voiceMode.ctrl.abort(); } catch(e) {} }
+      startListening();
+    }
+
+    function refreshMuteBtn(){
+      var b = document.getElementById('voiceMuteBtn');
+      if (!b) return;
+      b.textContent = mic.muted ? '🔇' : '🎤';
+      b.classList.toggle('is-speaking', mic.muted);
+      b.setAttribute('aria-label', mic.muted ? 'تشغيل الميكروفون' : 'كتم الميكروفون');
+    }
+
+    function feedSpeech(full, final){
+      var sp = voiceMode.sp;
+      for (var guard = 0; guard < 50; guard++) {
+        var first = sp.n === 0;
+        var cut = nextSpeechCut(full, sp.cut, final, first ? 30 : 200, first ? 260 : 450);
+        if (cut <= sp.cut) break;
+        var piece = stripMarkdownForSpeech(full.slice(sp.cut, cut));
+        sp.cut = cut;
+        if (hasWords(piece)) { sp.n++; ttsEnqueue(piece); }
+        if (final && sp.cut >= full.length) break;
       }
     }
 
     function sendVoiceMessage(text){
-      if (!state.apiKey) { setVoiceState('idle'); return; }
-      setVoiceState('thinking');
-      handleSend(text, {
-        onDone: function(assistantMsg){
-          if (!voiceMode.open) return;
-          if (voiceMode.suppressNextSpeak) { voiceMode.suppressNextSpeak = false; startListening(); return; }
-          if (assistantMsg.error) { startListening(); return; }
+      var turn = voiceMode.turn;
+      voiceMode.sp = { cut:0, n:0 };
+      ttsStart({
+        onChunk: function(t){
+          if (turn !== voiceMode.turn || !voiceMode.open) return;
           setVoiceState('speaking');
-          if (els.voiceTranscript) els.voiceTranscript.textContent = stripMarkdownForSpeech(assistantMsg.content);
-          speakText(assistantMsg.content, {
-            messageId: assistantMsg.id,
-            onEnd: function(){
-              if (!voiceMode.open) return;
-              startListening();
-            },
-            onError: function(){ if (voiceMode.open) startListening(); }
-          });
+          if (els.voiceTranscript) els.voiceTranscript.textContent = t;
+        },
+        onEnd: function(){
+          if (turn !== voiceMode.turn || !voiceMode.open) return;
+          setTimeout(function(){ if (turn === voiceMode.turn && voiceMode.open) startListening(); }, 250);
+        },
+        onError: function(err){
+          if (turn !== voiceMode.turn) return;
+          toast('صوت Gemini مش شغال (' + errShort(err) + ') — بكمّل بصوت الجهاز.');
         }
       });
+      var attempts = 0;
+      (function go(){
+        if (turn !== voiceMode.turn || !voiceMode.open) return;
+        if (state.isGenerating && attempts++ < 12) {
+          if (state.controller) { try { state.controller.abort(); } catch(e) {} }
+          setTimeout(go, 300);
+          return;
+        }
+        handleSend(text, {
+          onStream: function(full){
+            if (turn !== voiceMode.turn || !voiceMode.open) return;
+            feedSpeech(full, false);
+          },
+          onDone: function(msg){
+            if (turn !== voiceMode.turn || !voiceMode.open) return;
+            if (msg.error) {
+              ttsStop();
+              setVoiceState('idle', 'حصل خطأ في الرد: ' + String(msg.content || '').split('\n').slice(-1)[0].slice(0, 120));
+              setTimeout(function(){ if (turn === voiceMode.turn && voiceMode.open) startListening(); }, 3000);
+              return;
+            }
+            feedSpeech(msg.content || '', true);
+            ttsFinish();
+          }
+        });
+        if (!state.isGenerating) { ttsStop(); startListening(); }
+      })();
+    }
+
+    /* ================= long-term memory (self-learning) ================= */
+    var MEM_KEY = 'mgai_memory_v1';
+    var memory = [];
+    try { memory = JSON.parse(localStorage.getItem(MEM_KEY) || '[]') || []; if (!Array.isArray(memory)) memory = []; } catch(e) { memory = []; }
+    function saveMemory(){ try { localStorage.setItem(MEM_KEY, JSON.stringify(memory)); } catch(e) {} }
+    function addMemory(t){
+      t = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+      if (t.length < 4) return false;
+      if (/(AIza[\w-]{10,}|ghp_\w{10,}|github_pat_\w{10,}|sk-[\w-]{10,})/.test(t)) return false;
+      var low = t.toLowerCase();
+      for (var i = 0; i < memory.length; i++) if (String(memory[i].text).toLowerCase() === low) return false;
+      memory.push({ id:'m' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), text:t, t:Date.now() });
+      if (memory.length > 150) memory.splice(0, memory.length - 150);
+      saveMemory();
+      renderMemoryList();
+      return true;
+    }
+    function splitMemory(text){
+      var mems = [];
+      var clean = String(text || '').replace(/<memory>([\s\S]*?)<\/memory>/gi, function(_, a){ mems.push(a); return ''; });
+      clean = clean.replace(/<memory>[\s\S]*$/i, '').replace(/<(m(e(m(o(r(y)?)?)?)?)?)?$/i, '');
+      return { clean: clean.replace(/\s+$/, ''), mems: mems };
+    }
+    var MEMORY_INSTR = '\n\n## الذاكرة والتعلّم الذاتي\nعندك ذاكرة طويلة بتفضل بين كل المحادثات. لما تعرف حاجة مهمة ودائمة عن المستخدم (تفضيلاته، مشاريعه، أسلوبه، معلومة قالها عن نفسه)، أو لما يصحّحك وتطلع غلطان وفي درس تتعلمه، أو لما يقولك "افتكر"، ضيف في آخر ردك سطر بالشكل ده بالظبط: <memory>جملة قصيرة وواضحة</memory> — وسم واحد لكل معلومة، ومتكررش حاجة موجودة في الذاكرة، ومتحطش أسرار (مفاتيح أو باسوردات). المستخدم مش هيشوف الوسوم. استخدم الذاكرة في ردودك بشكل طبيعي من غير ما تقول "حسب ذاكرتي" كل شوية.';
+    function memoryBlock(){
+      if (!memory.length) return '';
+      return '\n\n### اللي فاكره دلوقتي:\n' + memory.slice(-60).map(function(m){ return '- ' + m.text; }).join('\n');
+    }
+    function renderMemoryList(){
+      var box = document.getElementById('memoryList');
+      if (!box) return;
+      box.innerHTML = '';
+      if (!memory.length) { box.innerHTML = '<div class="hint" style="margin:0 0 8px;">لسه مفيش حاجة محفوظة.</div>'; return; }
+      memory.slice().reverse().forEach(function(m){
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;line-height:1.7;';
+        var t = document.createElement('span'); t.style.flex = '1'; t.textContent = m.text;
+        var x = document.createElement('button'); x.type = 'button'; x.textContent = '✕'; x.setAttribute('aria-label', 'مسح');
+        x.style.cssText = 'background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:2px 6px;';
+        x.addEventListener('click', function(){ memory = memory.filter(function(z){ return z.id !== m.id; }); saveMemory(); renderMemoryList(); });
+        row.appendChild(t); row.appendChild(x); box.appendChild(row);
+      });
+    }
+
+    /* ================= backup / restore (survives uninstall because it lives outside the app) ================= */
+    var LASTBK_KEY = 'mgai_lastBackup';
+    function lastBackupTime(){ var v = parseInt(localStorage.getItem(LASTBK_KEY) || '0', 10); return isNaN(v) ? 0 : v; }
+    function updateBackupInfo(){
+      var el = document.getElementById('backupInfo'); if (!el) return;
+      var t = lastBackupTime();
+      var convs = state.conversations.filter(function(c){ return c.messages && c.messages.length; }).length;
+      el.textContent = 'محادثات: ' + convs + ' • ذاكرة: ' + memory.length + ' • آخر نسخة: ' + (t ? new Date(t).toLocaleString('ar-EG') : 'لسه مفيش') + '. لما تحفظ النسخة اختار Drive أو الملفات أو واتساب (ابعتها لنفسك). الملف فيه مفتاحك فمتشاركوش مع حد.';
+    }
+    function buildBackup(){
+      try { persistCurrentConversation(); } catch(e) {}
+      var settings = null;
+      try { settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch(e) {}
+      return { app:'MG.ai', format:1, exportedAt:new Date().toISOString(), conversations:state.conversations, memory:memory, settings:settings, voice:V2, voicePrefs:loadVoicePrefs() };
+    }
+    async function exportBackup(){
+      var json = JSON.stringify(buildBackup());
+      var d = new Date(), pad = function(n){ return (n < 10 ? '0' : '') + n; };
+      var name = 'MG-ai-backup-' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + '.json';
+      var P = window.Capacitor && window.Capacitor.Plugins;
+      try {
+        if (P && P.Filesystem && P.Share) {
+          await P.Filesystem.writeFile({ path:name, data:json, directory:'CACHE', encoding:'utf8' });
+          var u = await P.Filesystem.getUri({ path:name, directory:'CACHE' });
+          await P.Share.share({ title:'نسخة MG.ai الاحتياطية', files:[u.uri] });
+        } else if (navigator.share && window.File) {
+          await navigator.share({ files:[new File([json], name, { type:'application/json' })], title:'نسخة MG.ai الاحتياطية' });
+        } else {
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([json], { type:'application/json' }));
+          a.download = name; document.body.appendChild(a); a.click(); a.remove();
+        }
+      } catch (err) {
+        if (err && /cancel|abort/i.test(String(err.name || '') + String(err.message || ''))) return;
+        try { await navigator.clipboard.writeText(json); toast('مقدرتش أفتح المشاركة (' + errShort(err) + ') فنسخت النسخة كلها في الحافظة — الصقها في ملاحظات أو واتساب.'); localStorage.setItem(LASTBK_KEY, String(Date.now())); updateBackupInfo(); }
+        catch(e2) { toast('فشل حفظ النسخة: ' + errShort(err)); }
+        return;
+      }
+      try { localStorage.setItem(LASTBK_KEY, String(Date.now())); } catch(e) {}
+      updateBackupInfo();
+      toast('✅ النسخة جاهزة. احفظها في مكان برّه التطبيق (Drive / الملفات).');
+    }
+    async function importBackupText(text){
+      var data;
+      try { data = JSON.parse(text); } catch(e) { toast('الملف ده مش نسخة احتياطية سليمة.'); return; }
+      if (!data || data.app !== 'MG.ai' || !Array.isArray(data.conversations)) { toast('الملف ده مش نسخة MG.ai.'); return; }
+      var ok = await askConfirm({
+        title:'استرجاع نسخة احتياطية',
+        lines:['محادثات في الملف: ' + data.conversations.length, 'حاجات في الذاكرة: ' + ((data.memory || []).length)],
+        note:'هيتدمج مع الموجود عندك. مفيش حاجة هتتمسح، وأي محادثة أحدث عندك بتفضل زي ما هي.',
+        okLabel:'استرجاع'
+      });
+      if (!ok) return;
+      var byId = {};
+      state.conversations.forEach(function(c){ byId[c.id] = c; });
+      var added = 0;
+      data.conversations.forEach(function(c){
+        if (!c || !c.id) return;
+        if (!byId[c.id]) { state.conversations.push(c); byId[c.id] = c; added++; }
+        else if ((c.updatedAt || 0) > (byId[c.id].updatedAt || 0) && (c.messages || []).length >= (byId[c.id].messages || []).length) {
+          var idx = state.conversations.indexOf(byId[c.id]); state.conversations[idx] = c; byId[c.id] = c; added++;
+        }
+      });
+      state.conversations.sort(function(a, b){ return (b.updatedAt || 0) - (a.updatedAt || 0); });
+      saveConversationsToStorage();
+      (data.memory || []).forEach(function(m){ if (m && m.text) addMemory(m.text); });
+      if (data.settings && !state.apiKey) {
+        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data.settings)); loadSettings(); updateStatus(); } catch(e) {}
+      }
+      if (data.voice) { Object.keys(V2).forEach(function(k){ if (data.voice[k] !== undefined && !localStorage.getItem(V2_KEY)) V2[k] = data.voice[k]; }); saveV2(); }
+      renderConversationsList();
+      updateBackupInfo();
+      toast('✅ اتسترجع ' + added + ' محادثة.');
     }
 
     function scrollToBottom(){ els.chat.scrollTop = els.chat.scrollHeight; }
@@ -1272,6 +1844,7 @@
 
     function openSettings(){
       loadVoiceList();
+      try { updateBackupInfo(); renderMemoryList(); } catch(e) {}
       els.sheet.hidden = false;
       els.backdrop.hidden = false;
       requestAnimationFrame(function(){
@@ -1287,6 +1860,7 @@
         els.sheet.hidden = true;
         els.backdrop.hidden = true;
       }, 260);
+      if (voiceMode.open && voiceMode.paused) { voiceMode.paused = false; startListening(); }
     }
 
     function openSidebar(){
@@ -1833,25 +2407,76 @@
 
     /* ---------------- Gemini streaming ---------------- */
 
+    /* When a free quota runs out (HTTP 429) or the model is overloaded (503), move on
+       automatically: other API keys first, then lighter models (each has its own quota). */
+    var FALLBACK_MODELS = ['gemini-3.6-flash','gemini-3.5-flash','gemini-3.5-flash-lite','gemini-3.1-flash-lite'];
+    var exhausted = {};
+    var announcedCombo = {};
+    function comboList(){
+      var keys = [state.apiKey].concat(String(V2.extraKeys || '').split(/[\s,;]+/).filter(function(k){ return k.length > 20 && k !== state.apiKey; }));
+      var models = [state.model].concat(FALLBACK_MODELS.filter(function(m){ return m !== state.model; }));
+      var out = [];
+      models.forEach(function(m){ keys.forEach(function(k){ out.push({ model:m, key:k, id:m + '|' + k.slice(-6) }); }); });
+      return out;
+    }
+    function availableCombos(){
+      var all = comboList();
+      var ok = all.filter(function(c){ return !(exhausted[c.id] > Date.now()); });
+      if (!ok.length) { exhausted = {}; ok = all; }
+      return ok;
+    }
+    function cloneOpts(o){ var r = {}; Object.keys(o || {}).forEach(function(k){ r[k] = o[k]; }); return r; }
+
     function streamGemini(messagesForApi, onDelta, signal, opts){
       opts = opts || {};
-      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(state.model) + ':streamGenerateContent?alt=sse';
+      var combos = availableCombos(), i = 0;
+      function attempt(o){
+        var c = combos[i], o2 = cloneOpts(o);
+        o2.model = c.model; o2.key = c.key;
+        return streamGeminiOnce(messagesForApi, onDelta, signal, o2).then(function(r){
+          if (i > 0 && !announcedCombo[c.id]) { announcedCombo[c.id] = true; toast('الحصة خلصت على الأساسي، كمّلت بـ ' + c.model + (c.key !== state.apiKey ? ' (مفتاح تاني)' : '')); }
+          return r;
+        }).catch(function(err){
+          var m = (err && err.message) || '';
+          if (err && err.name === 'AbortError') throw err;
+          if (!o.noSearch && !o.agent && V2.search && /HTTP 400/.test(m)) {
+            var o3 = cloneOpts(o); o3.noSearch = true; return attempt(o3);
+          }
+          if (/HTTP (429|503)/.test(m) && i < combos.length - 1) {
+            if (/HTTP 429/.test(m)) exhausted[c.id] = Date.now() + 20 * 60000;
+            i++;
+            return attempt(o);
+          }
+          throw err;
+        });
+      }
+      return attempt(opts);
+    }
+
+    function streamGeminiOnce(messagesForApi, onDelta, signal, opts){
+      opts = opts || {};
+      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(opts.model || state.model) + ':streamGenerateContent?alt=sse';
       var body = {
         contents: messagesForApi,
-        generationConfig: { temperature: opts.agent ? 0.3 : 0.6, maxOutputTokens: opts.agent ? 32768 : 8192, thinkingConfig: { thinkingLevel: 'low' } }
+        generationConfig: { temperature: opts.agent ? 0.3 : 0.7, maxOutputTokens: opts.agent ? 32768 : (voiceMode.open ? 4096 : 32768), thinkingConfig: { thinkingLevel: (voiceMode.open || opts.agent) ? 'low' : (V2.thinking === 'low' ? 'low' : 'high') } }
       };
       var sysText = (state.systemPrompt && state.systemPrompt.trim()) ? state.systemPrompt : '';
       if (opts.agent) {
         sysText = (sysText ? sysText + '\n\n' : '') + AGENT_PROMPT;
         body.tools = AGENT_TOOLS;
       }
+      var nowD = new Date();
+      sysText = (sysText ? sysText + '\n\n' : '') + 'معلومة للسياق: التاريخ والوقت دلوقتي عند المستخدم: ' + nowD.toLocaleString('ar-EG', { dateStyle:'full', timeStyle:'short' }) + ' (' + (Intl.DateTimeFormat().resolvedOptions().timeZone || '') + '). لو السؤال عن حاجة ممكن تكون اتغيرت أو جديدة (أخبار، أسعار، إصدارات مكتبات، أحداث) استخدم البحث على الويب وما تعتمدش على ذاكرتك بس، وقول إنك بحثت.';
+      sysText = sysText + MEMORY_INSTR + memoryBlock();
+      if (voiceMode.open) sysText = sysText + VOICE_PROMPT;
+      if (V2.search && !opts.agent && !opts.noSearch) body.tools = [{ google_search: {} }];
       if (sysText) {
         body.systemInstruction = { parts: [{ text: sysText }] };
       }
 
       return fetch(url, {
         method:'POST',
-        headers:{ 'Content-Type':'application/json', 'x-goog-api-key': state.apiKey },
+        headers:{ 'Content-Type':'application/json', 'x-goog-api-key': opts.key || state.apiKey },
         body: JSON.stringify(body),
         signal: signal
       }).then(function(res){
@@ -1977,8 +2602,10 @@
         chain = runAgentLoop(apiMessages, assistantMsg, state.controller.signal, function(m){ assistantMsg = m; });
       } else {
         chain = streamGemini(apiMessages, function(delta, fullText){
-          assistantMsg.content = fullText;
+          var sm = splitMemory(fullText);
+          assistantMsg.content = sm.clean;
           renderStreamingText(assistantMsg);
+          if (sendOpts.onStream) sendOpts.onStream(sm.clean);
         }, state.controller.signal).then(function(r){ return { result:r, msg:assistantMsg }; });
       }
 
@@ -1986,6 +2613,13 @@
         var result = out.result;
         assistantMsg = out.msg;
         var textOut = result && result.text;
+        if (textOut) {
+          var smf = splitMemory(textOut);
+          var learned = 0;
+          smf.mems.forEach(function(t){ if (addMemory(t)) learned++; });
+          textOut = smf.clean || (smf.mems.length ? 'تمام 👍' : '');
+          if (learned && !voiceMode.open) toast('🧠 اتعلمت وحفظت ' + learned + ' حاجة في ذاكرتي');
+        }
         if (textOut) {
           assistantMsg.content = textOut;
           finalizeAssistantMessage(assistantMsg);
@@ -2816,8 +3450,73 @@
 
     els.voiceModeBtn.addEventListener('click', openVoiceMode);
     els.voiceCloseBtn.addEventListener('click', closeVoiceMode);
-    els.voiceSettingsBtn.addEventListener('click', function(){ stopListening(); openSettings(); });
+    els.voiceSettingsBtn.addEventListener('click', function(){
+      voiceMode.turn++; voiceMode.paused = true;
+      ttsStop();
+      if (state.controller) { try { state.controller.abort(); } catch(e) {} }
+      setVoiceState('idle', 'الإعدادات مفتوحة...');
+      openSettings();
+    });
+    els.voiceOrb.addEventListener('click', function(){
+      var st = voiceMode.state;
+      if (st === 'listening' && mic.speaking) finishUtterance();
+      else if (st === 'speaking' || st === 'thinking') voiceInterrupt();
+    });
+    document.getElementById('voiceMuteBtn').addEventListener('click', function(){
+      mic.muted = !mic.muted;
+      resetVad();
+      refreshMuteBtn();
+      if (voiceMode.state === 'listening') setVoiceState('listening');
+    });
+    (function initV2UI(){
+      var g = function(id){ return document.getElementById(id); };
+      var sel = g('geminiVoiceInput');
+      GEMINI_VOICES.forEach(function(v){ var o = document.createElement('option'); o.value = v[0]; o.textContent = v[1]; sel.appendChild(o); });
+      sel.value = V2.voice;
+      g('geminiTtsInput').checked = !!V2.geminiTts;
+      g('ttsModelInput').value = V2.ttsModel;
+      g('bargeInInput').checked = !!V2.bargeIn;
+      g('thinkingInput').value = V2.thinking;
+      g('searchInput').checked = V2.search !== false;
+      g('extraKeysInput').value = V2.extraKeys || '';
+      function syncV2(){
+        V2.voice = sel.value;
+        V2.geminiTts = g('geminiTtsInput').checked;
+        V2.ttsModel = g('ttsModelInput').value.trim() || 'gemini-2.5-flash-preview-tts';
+        V2.bargeIn = g('bargeInInput').checked;
+        V2.thinking = g('thinkingInput').value;
+        V2.search = g('searchInput').checked;
+        V2.extraKeys = g('extraKeysInput').value;
+        saveV2();
+      }
+      ['geminiVoiceInput','geminiTtsInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
+    })();
 
+    document.getElementById('backupExportBtn').addEventListener('click', exportBackup);
+    document.getElementById('backupImportBtn').addEventListener('click', function(){ document.getElementById('backupFileInput').click(); });
+    document.getElementById('backupFileInput').addEventListener('change', function(e){
+      var f = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!f) return;
+      var r = new FileReader();
+      r.onload = function(){ importBackupText(String(r.result || '')); };
+      r.readAsText(f);
+    });
+    document.getElementById('memoryAddBtn').addEventListener('click', function(){
+      var t = window.prompt('اكتب الحاجة اللي عايزه يفتكرها:');
+      if (t && addMemory(t)) toast('🧠 اتحفظت.');
+    });
+    document.getElementById('memoryClearBtn').addEventListener('click', async function(){
+      if (!memory.length) return;
+      var ok = await askConfirm({ title:'مسح الذاكرة', lines:['هتتمسح ' + memory.length + ' حاجة من ذاكرته.'], okLabel:'امسح' });
+      if (ok) { memory = []; saveMemory(); renderMemoryList(); updateBackupInfo(); }
+    });
+    renderMemoryList();
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e) {}
+    setTimeout(function(){
+      var hasChats = state.conversations.some(function(c){ return c.messages && c.messages.length > 1; });
+      if (hasChats && Date.now() - lastBackupTime() > 3 * 86400000) toast('💾 مفيش نسخة احتياطية حديثة. من ⚙ اضغط «حفظ نسخة احتياطية» عشان محادثاتك متضيعش.');
+    }, 6000);
     updateStatus();
     applySavedVoicePrefs();
     state.conversations = loadConversationsFromStorage();
