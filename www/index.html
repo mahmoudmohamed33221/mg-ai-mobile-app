@@ -938,7 +938,13 @@
 
     function loadVoiceList(){
       if (!ttsSupported) return;
-      availableVoices = window.speechSynthesis.getVoices() || [];
+      var voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) {
+        // محاولة تانية بعد فترة قصيرة لو لسه مفيش أصوات
+        setTimeout(loadVoiceList, 500);
+        return;
+      }
+      availableVoices = voices;
       populateVoiceSelect();
     }
 
