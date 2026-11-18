@@ -1382,23 +1382,8 @@
     function speakText(text, opts){
       opts = opts || {};
       getAudioCtx();
-      if (!V2.geminiTts || !state.apiKey) return speakTextBrowser(text, opts);
-      stopSpeaking();
-      currentSpeakingMessageId = opts.messageId || null;
-      refreshSpeakButtonsUI();
-      ttsStart({
-        onEnd: function(){ currentSpeakingMessageId = null; refreshSpeakButtonsUI(); if (opts.onEnd) opts.onEnd(); },
-        onError: function(err){ if (opts.onError) opts.onError(err); }
-      });
-      var raw = text || '', from = 0, n = 0;
-      while (from < raw.length) {
-        var cut = nextSpeechCut(raw, from, true, 0, n === 0 ? 260 : 450);
-        if (cut <= from) break;
-        var piece = stripMarkdownForSpeech(raw.slice(from, cut));
-        from = cut;
-        if (hasWords(piece)) { n++; ttsEnqueue(piece); }
-      }
-      ttsFinish();
+      // Force local browser TTS for reading messages to avoid API quota issues
+      return speakTextBrowser(text, opts);
     }
 
     /* ---------- microphone: always-on voice activity detection ---------- */
