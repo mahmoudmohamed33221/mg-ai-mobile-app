@@ -48,9 +48,10 @@
 
   .matrix-canvas{
     position:fixed;inset:0;z-index:0;pointer-events:none;
-    opacity:.62;
-    -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 0%, black, transparent 88%);
-    mask-image:radial-gradient(ellipse 90% 70% at 50% 0%, black, transparent 88%);
+    opacity:.55;
+    width:100%;height:100%;
+    -webkit-mask-image:linear-gradient(to bottom, black 0%, black 70%, rgba(0,0,0,.6) 100%);
+    mask-image:linear-gradient(to bottom, black 0%, black 70%, rgba(0,0,0,.6) 100%);
   }
 
   .app{
@@ -62,39 +63,42 @@
 
   /* ---------- header ---------- */
   .topbar{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:12px 18px;flex-shrink:0;gap:10px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;
+    padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
     border-bottom:1px solid var(--border-soft);
-    background:rgba(10,19,12,0.92);
-    backdrop-filter:blur(6px);
+    background:rgba(10,19,12,0.94);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
   }
-  .brand{display:flex;flex-direction:column;gap:2px;min-width:0;}
-  .brand-row{display:flex;align-items:center;gap:7px;}
+  .brand{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;}
+  .brand-row{display:flex;align-items:center;gap:8px;min-width:0;}
   .brand-logo{
-    width:24px;height:24px;flex-shrink:0;border-radius:7px;
+    width:28px;height:28px;flex-shrink:0;border-radius:8px;
     background:var(--accent-soft);color:var(--accent);border:1px solid rgba(57,255,20,0.35);
     display:flex;align-items:center;justify-content:center;
-    font-family:var(--font-mono);font-size:11px;font-weight:700;
+    font-family:var(--font-mono);font-size:11px;font-weight:700;direction:ltr;
   }
-  .brand-mark{font-family:var(--font-mono);font-weight:700;font-size:15.5px;letter-spacing:.5px;direction:ltr;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .brand-mark{font-family:var(--font-mono);font-weight:700;font-size:16px;line-height:1.2;direction:ltr;unicode-bidi:isolate;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .brand-mark span{color:var(--accent);text-shadow:0 0 12px rgba(57,255,20,0.45);}
-  .brand-sub{font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;color:var(--text-muted);padding-inline-start:31px;}
-  .topbar-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-  .status-pill{
-    display:flex;align-items:center;gap:6px;
-    font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);
-    padding:5px 10px;border:1px solid var(--border);border-radius:999px;
+  .brand-sub{
+    display:flex;align-items:center;gap:6px;min-width:0;
+    font-family:var(--font-body);font-size:11.5px;letter-spacing:0;line-height:1.4;color:var(--text-secondary);
+    padding-inline-start:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);flex-shrink:0;}
+  .brand-sub #statusLabel{overflow:hidden;text-overflow:ellipsis;}
+  .topbar-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--text-muted);flex-shrink:0;}
   .status-dot.is-ready{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);animation:pulse 2.4s ease-in-out infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
   .icon-btn{
-    width:36px;height:36px;flex-shrink:0;border-radius:var(--radius-sm);
+    width:36px;height:36px;flex-shrink:0;border-radius:10px;
     border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-secondary);
-    font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;
+    font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;
+    -webkit-tap-highlight-color:transparent;
   }
   .icon-btn:hover{color:var(--accent);border-color:var(--accent);}
+  .icon-btn:active{transform:scale(.94);}
   .icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  @media (max-width:380px){ .topbar{padding-inline:10px;gap:6px;} .icon-btn{width:33px;height:33px;font-size:15px;} .topbar-actions{gap:5px;} .brand-mark{font-size:14.5px;} }
 
   /* ---------- chat ---------- */
   .chat{flex:1;overflow-y:auto;padding:20px 16px 12px;display:flex;flex-direction:column;}
@@ -478,6 +482,13 @@
   .confirm-note{font-size:12.5px;color:var(--text-secondary);line-height:1.8;margin-top:10px;}
   .confirm-actions{display:flex;gap:10px;margin-top:16px;}
   .confirm-actions .primary-btn,.confirm-actions .ghost-btn{margin-top:0;}
+  .vrow{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--bg-elevated);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+  .vrow.sel{border-color:var(--accent);background:var(--accent-soft);}
+  .vrow .vtick{width:16px;flex-shrink:0;color:var(--accent);font-size:13px;text-align:center;}
+  .vrow .vname{font-weight:700;font-size:13px;direction:ltr;min-width:96px;text-align:left;}
+  .vrow .vtrait{flex:1;font-size:12px;color:var(--text-secondary);}
+  .vrow .vplay{width:32px;height:32px;flex-shrink:0;border-radius:9px;border:1px solid var(--border);background:var(--bg);color:var(--text-secondary);font-size:13px;cursor:pointer;}
+  .vrow .vplay:active{transform:scale(.94);}
 </style>
 </head>
 <body>
@@ -491,13 +502,9 @@
           <span class="brand-logo" aria-hidden="true">&lt;/&gt;</span>
           <div class="brand-mark">MG.ai <span>CODER</span></div>
         </div>
-        <div class="brand-sub">مساعد برمجة احترافي</div>
+        <div class="brand-sub"><span class="status-dot" id="statusDot"></span><span id="statusLabel">بدون مفتاح</span></div>
       </div>
       <div class="topbar-actions">
-        <div class="status-pill">
-          <span class="status-dot" id="statusDot"></span>
-          <span id="statusLabel">بدون مفتاح</span>
-        </div>
         <button type="button" class="icon-btn update-btn" id="updateBtn" hidden aria-label="تحديث التطبيق" title="تحديث التطبيق">⬆</button>
         <button type="button" class="icon-btn" id="newChatBtn" aria-label="محادثة جديدة" title="محادثة جديدة">✚</button>
         <button type="button" class="icon-btn" id="historyBtn" aria-label="سجل المحادثات" title="سجل المحادثات">☰</button>
@@ -635,44 +642,49 @@
     </div>
 
     <div class="field">
-      <label>🎙️ الصوت والمحادثة الصوتية (Gemini)</label>
-      <label class="check-row"><input type="checkbox" id="geminiTtsInput"><span>اقرا بصوت Gemini (مصري للكلام العربي وإنجليزي للإنجليزي تلقائيًا، ومش محتاج أي صوت مثبّت على تليفونك)</span></label>
-      <label for="geminiVoiceInput" style="margin-top:8px;">شخصية الصوت</label>
-      <select id="geminiVoiceInput"></select>
-      <label for="ttsModelInput" style="margin-top:8px;">موديل الصوت (TTS)</label>
+      <label>🎙️ المكالمة الصوتية</label>
+      <label class="check-row"><input type="checkbox" id="liveModeInput"><span>مكالمة لايف مباشرة (Gemini Live): بتتكلم وهو بيسمعك ويرد عليك بصوته في نفس اللحظة زي ChatGPT</span></label>
+      <label for="liveModelInput" style="margin-top:8px;">موديل اللايف (سيبه فاضي = اختيار تلقائي)</label>
+      <input type="text" id="liveModelInput" placeholder="تلقائي" autocomplete="off" spellcheck="false" dir="ltr">
+      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="bargeInInput"><span>قاطعه بصوتك وهو بيتكلم (اقفلها لو من غير سماعة وبيسمع نفسه — وقتها اضغط على الدايرة عشان تقاطعه)</span></label>
+      <div class="hint">اللايف بيشتغل بمفتاح Gemini نفسه وله حصة لوحده غير حصة الشات والقراءة. كلام المكالمة بيتسجّل في الشات.</div>
+    </div>
+
+    <div class="field">
+      <label>🔊 قراءة الرسائل (زرار السماعة)</label>
+      <select id="ttsEngineInput">
+        <option value="auto">تلقائي — Gemini المصري، ولو الحصة خلصت جوجل (بلا حدود)، وبعدين الجهاز</option>
+        <option value="gemini">Gemini بس</option>
+        <option value="google">جوجل المجاني (بلا حدود — مش لهجة مصرية)</option>
+        <option value="device">صوت الجهاز بس</option>
+      </select>
+      <label for="ttsModelInput" style="margin-top:8px;">موديل Gemini للقراءة</label>
       <input type="text" id="ttsModelInput" placeholder="gemini-2.5-flash-preview-tts" autocomplete="off" spellcheck="false" dir="ltr">
-      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="bargeInInput"><span>قاطعه بصوتك وهو بيتكلم (الأفضل مع سماعة، من غير سماعة ممكن يسمع نفسه)</span></label>
-      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="searchInput"><span>بحث جوجل تلقائي للمعلومات الحديثة (أخبار، أسعار، إصدارات)</span></label>
+      <button type="button" class="text-btn" id="voiceTestBtn" style="width:100%;padding:10px;margin-top:8px;">🔊 جرّب الصوت المثبّت</button>
+      <div class="hint">كل جملة بتتقري بتتسجّل على تليفونك، فلو اتقرت تاني بتشتغل فورًا ومن غير ما تستهلك من الحصة.</div>
+    </div>
+
+    <div class="field">
+      <label>🎭 اختار صوتك (بيتثبّت ومبيتغيّرش لوحده)</label>
+      <div id="geminiVoiceList"></div>
+      <div class="hint">دي ٣٠ شخصية صوت من Gemini، والوصف من جوجل. كلهم بيتكلموا مصري وإنجليزي. اضغط على الصوت عشان تثبّته، و▶ عشان تسمع عيّنة (بتتسجّل بعد أول مرة).</div>
+    </div>
+
+    <div class="field">
+      <label class="check-row"><input type="checkbox" id="searchInput"><span>بحث جوجل تلقائي للمعلومات الحديثة (أخبار، أسعار، إصدارات)</span></label>
       <label for="thinkingInput" style="margin-top:8px;">عمق التفكير في الشات</label>
       <select id="thinkingInput"><option value="high">عميق — أذكى وأدق (أبطأ شوية)</option><option value="low">سريع</option></select>
-      <div class="hint">الصوت والميكروفون بيشتغلوا عن طريق مفتاح Gemini نفسه. لو الصوت وقف مرة، ممكن تكون حصة الصوت المجانية خلصت (٤٢٩) وساعتها بيكمّل بصوت الجهاز تلقائيًا.</div>
     </div>
 
     <div class="field">
-      <label for="voiceSelect">صوت احتياطي من الجهاز (بيشتغل بس لو صوت Gemini فشل)</label>
-      <select id="voiceSelect"></select>
-      <button type="button" id="refreshVoicesBtn" style="margin-top:5px;width:100%;">🔄 تحديث قائمة الأصوات</button>
-      <div class="hint" id="voiceHint">القائمة دي بتعرض كل الأصوات المتاحة فعليًا على جهازك ومتصفحك، ومرتبة عشان الأصوات العربية (وخصوصًا المصري لو موجود 🟢) تطلع فوق. لو مش لاقي صوت عربي خالص، جرّب تفتح الصفحة من Chrome على أندرويد، أو ضيف لغة عربية لصوت النظام من إعدادات جهازك.</div>
-    </div>
-
-    <div class="field">
-      <label>طابع الصوت</label>
-      <div class="voice-preset-row" id="voicePresetRow">
-        <button type="button" class="voice-preset-btn" data-preset="male_young">شاب</button>
-        <button type="button" class="voice-preset-btn" data-preset="male_deep">راجل</button>
-        <button type="button" class="voice-preset-btn" data-preset="female_young">بنت</button>
-        <button type="button" class="voice-preset-btn" data-preset="female_warm">ست</button>
-      </div>
-      <div class="hint">الطابع بيظبط طبقة وسرعة الصوت فوق أي صوت تختاره، عشان تحس بفرق بين الأصوات حتى لو جهازك عنده صوت عربي واحد بس.</div>
-    </div>
-
-    <div class="field">
-      <label for="voiceRateInput">سرعة الكلام</label>
-      <input type="range" id="voiceRateInput" min="0.7" max="1.3" step="0.05" value="1">
-    </div>
-
-    <div class="field">
-      <button type="button" class="text-btn" id="voiceTestBtn" style="width:100%;padding:10px;">🔊 تجربة الصوت</button>
+      <details>
+        <summary style="cursor:pointer;color:var(--text-secondary);font-size:13px;">🔈 أصوات الجهاز (احتياطي لو مفيش نت)</summary>
+        <select id="voiceSelect" style="margin-top:8px;"></select>
+        <button type="button" id="refreshVoicesBtn" style="margin-top:5px;width:100%;">🔄 تحديث القائمة</button>
+        <div class="hint" id="voiceHint"></div>
+        <label for="voiceRateInput" style="margin-top:8px;">سرعة الكلام</label>
+        <input type="range" id="voiceRateInput" min="0.7" max="1.3" step="0.05" value="1">
+      </details>
     </div>
 
     <button type="button" class="primary-btn" id="saveSettingsBtn">حفظ والبدء</button>
@@ -840,29 +852,49 @@
     var matrixChars = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي٠١٢٣٤٥٦٧٨٩{}<>/;=+*#01';
     var reduceMotionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
 
+    var matrixDrops = [];
+    var matrixW = 0, matrixH = 0;
+
+    function newMatrixDrop(initial){
+      var rows = Math.ceil(matrixH / matrixFontSize);
+      return {
+        x: Math.floor(Math.random() * Math.ceil(matrixW / matrixFontSize)) * matrixFontSize,
+        y: initial ? Math.random() * rows : -Math.random() * 25,   /* in rows; start spread over the whole screen */
+        speed: 0.45 + Math.random() * 0.9
+      };
+    }
+
     function resizeMatrixCanvas(){
       if (!els.matrixCanvas) return;
-      els.matrixCanvas.width = window.innerWidth;
-      els.matrixCanvas.height = window.innerHeight;
-      var cols = Math.ceil(els.matrixCanvas.width / matrixFontSize);
-      matrixColumns = [];
-      for (var i=0;i<cols;i++) matrixColumns[i] = Math.random() * -80;
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      matrixW = window.innerWidth; matrixH = window.innerHeight;
+      els.matrixCanvas.width = Math.round(matrixW * dpr);
+      els.matrixCanvas.height = Math.round(matrixH * dpr);
+      matrixCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      matrixCtx.fillStyle = '#060B07';
+      matrixCtx.fillRect(0, 0, matrixW, matrixH);
+      var count = Math.ceil(matrixW / matrixFontSize * 1.6);
+      matrixDrops = [];
+      for (var i=0;i<count;i++) matrixDrops.push(newMatrixDrop(true));
     }
 
     function drawMatrixFrame(){
       if (!matrixCtx) return;
-      matrixCtx.fillStyle = 'rgba(6,11,7,0.13)';
-      matrixCtx.fillRect(0, 0, els.matrixCanvas.width, els.matrixCanvas.height);
+      matrixCtx.fillStyle = 'rgba(6,11,7,0.085)';
+      matrixCtx.fillRect(0, 0, matrixW, matrixH);
       matrixCtx.font = matrixFontSize + 'px monospace';
       matrixCtx.textBaseline = 'top';
-      for (var i=0;i<matrixColumns.length;i++){
-        var ch = matrixChars.charAt(Math.floor(Math.random()*matrixChars.length));
-        var x = i * matrixFontSize;
-        var y = matrixColumns[i] * matrixFontSize;
-        matrixCtx.fillStyle = Math.random() < 0.05 ? '#DFFCE4' : 'rgba(57,255,20,0.78)';
-        matrixCtx.fillText(ch, x, y);
-        if (y > els.matrixCanvas.height && Math.random() > 0.975) matrixColumns[i] = 0;
-        matrixColumns[i] += 0.5;
+      for (var i=0;i<matrixDrops.length;i++){
+        var d = matrixDrops[i];
+        var y = d.y * matrixFontSize;
+        if (y >= -matrixFontSize && y <= matrixH) {
+          var ch = matrixChars.charAt(Math.floor(Math.random()*matrixChars.length));
+          matrixCtx.fillStyle = Math.random() < 0.06 ? '#DFFCE4' : 'rgba(57,255,20,0.85)';
+          matrixCtx.fillText(ch, d.x, y);
+        }
+        d.y += d.speed;
+        /* let it run all the way to the bottom of the screen, then restart above the top */
+        if (y > matrixH + matrixFontSize * 2) matrixDrops[i] = newMatrixDrop(false);
       }
     }
 
@@ -885,14 +917,10 @@
     var availableVoices = [];
     var speakButtonRegistry = {};
     var currentSpeakingMessageId = null;
+    var ttsLoadingId = null;
     var hasArabicVoice = false;
 
-    var VOICE_PRESETS = {
-      male_young:  { label:'شاب', pitch:0.98, rate:1.05 },
-      male_deep:   { label:'راجل', pitch:0.78, rate:0.98 },
-      female_young:{ label:'بنت', pitch:1.35, rate:1.08 },
-      female_warm: { label:'ست', pitch:1.18, rate:0.97 }
-    };
+    var VOICE_PRESETS = { male_young: { label:'عادي', pitch:1, rate:1 } };
     var activePreset = 'male_young';
 
     function scoreVoiceArabic(v){
@@ -906,7 +934,7 @@
 
     function populateVoiceSelect(){
       if (!els.voiceSelect) return;
-      var sorted = availableVoices.slice().sort(function(a,b){ return scoreVoiceArabic(b) - scoreVoiceArabic(a); });
+      var sorted = availableVoices.slice().sort(function(a,b){ return (scoreVoiceArabic(b) - scoreVoiceArabic(a)) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0); });
       hasArabicVoice = sorted.length > 0 && scoreVoiceArabic(sorted[0]) > 0;
       els.voiceSelect.innerHTML = '';
       els.voiceSelect._sortedVoices = sorted;
@@ -926,6 +954,7 @@
           if (prefs.voiceName && v.name === prefs.voiceName && v.lang === prefs.voiceLang) matchIdx = idx;
         });
         els.voiceSelect.value = String(matchIdx);
+        if (!prefs.voiceName) { try { saveVoicePrefs(); } catch(e) {} }   /* pin the first pick so it never changes by itself */
       }
       if (els.voiceHint) {
         if (!hasArabicVoice) {
@@ -938,13 +967,7 @@
 
     function loadVoiceList(){
       if (!ttsSupported) return;
-      var voices = window.speechSynthesis.getVoices();
-      if (voices.length === 0) {
-        // محاولة تانية بعد فترة قصيرة لو لسه مفيش أصوات
-        setTimeout(loadVoiceList, 500);
-        return;
-      }
-      availableVoices = voices;
+      availableVoices = window.speechSynthesis.getVoices() || [];
       populateVoiceSelect();
     }
 
@@ -986,7 +1009,7 @@
         if (!btn) return;
         var isActive = (id === currentSpeakingMessageId);
         btn.classList.toggle('is-active', isActive);
-        btn.textContent = isActive ? '⏹' : '🔊';
+        btn.textContent = isActive ? (id === ttsLoadingId ? '⏳' : '⏹') : '🔊';
         btn.setAttribute('aria-label', isActive ? 'إيقاف القراءة' : 'قراءة الرسالة');
       });
     }
@@ -994,6 +1017,7 @@
     function stopSpeaking(){
       ttsStop();
       currentSpeakingMessageId = null;
+      ttsLoadingId = null;
       refreshSpeakButtonsUI();
     }
 
@@ -1141,12 +1165,12 @@
     if (els.voiceRateInput) els.voiceRateInput.addEventListener('change', saveVoicePrefs);
     if (els.voiceTestBtn) {
       els.voiceTestBtn.addEventListener('click', function(){
-        var tm = document.getElementById('ttsModelInput'), tv = document.getElementById('geminiVoiceInput');
+        var tm = document.getElementById('ttsModelInput');
         if (tm) V2.ttsModel = tm.value.trim() || V2.ttsModel;
-        if (tv) V2.voice = tv.value;
-        V2.geminiTts = document.getElementById('geminiTtsInput').checked;
+        document.getElementById('ttsEngineInput') && (V2.ttsEngine = document.getElementById('ttsEngineInput').value);
         saveV2();
         if (!state.apiKey) { toast('ضيف مفتاح Gemini الأول وتحت اضغط حفظ.'); return; }
+        toast('بجهّز الصوت...');
         speakText('أهلاً بيك يا باشا! أنا MG.ai، وجاهز نتكلم مصري زي ما تحب. And I can also speak English naturally when you need it.', {
           onError: function(err){ toast('صوت Gemini فشل: ' + errShort(err)); }
         });
@@ -1160,12 +1184,16 @@
        speech->text (audio is sent to Gemini), and a continuous voice-activity loop so the
        call never "stops hearing you" after the first sentence. */
     var V2_KEY = 'mgai_voice_v2';
-    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'' };
+    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'' };
     var GEMINI_VOICES = [
-      ['Kore','Kore — حازم وواضح'], ['Puck','Puck — شبابي ومبسوط'], ['Charon','Charon — رزين ومعلوماتي'],
-      ['Fenrir','Fenrir — حماسي'], ['Aoede','Aoede — خفيف ومريح'], ['Leda','Leda — شبابي'],
-      ['Orus','Orus — قوي وحاسم'], ['Zephyr','Zephyr — مشرق'], ['Sulafat','Sulafat — دافي'],
-      ['Achird','Achird — ودود'], ['Algieba','Algieba — ناعم'], ['Gacrux','Gacrux — ناضج']
+      ['Kore','حازم وواضح'], ['Puck','مرِح ومتحمس'], ['Charon','رزين ومعلوماتي'], ['Fenrir','حماسي'],
+      ['Aoede','خفيف ومريح'], ['Leda','شبابي'], ['Orus','قوي وحازم'], ['Zephyr','مشرق'],
+      ['Sulafat','دافي'], ['Achird','ودود'], ['Algieba','ناعم'], ['Gacrux','ناضج'],
+      ['Callirrhoe','هادي ومسترخي'], ['Autonoe','مشرق'], ['Enceladus','هامس بنَفَس'], ['Iapetus','واضح'],
+      ['Umbriel','مريح وعفوي'], ['Despina','ناعم'], ['Erinome','واضح'], ['Algenib','خشن جهوري'],
+      ['Rasalgethi','معلوماتي'], ['Laomedeia','مرِح'], ['Achernar','ناعم وهادي'], ['Alnilam','حازم'],
+      ['Schedar','متّزن'], ['Pulcherrima','صريح ومباشر'], ['Zubenelgenubi','عفوي'], ['Vindemiatrix','لطيف'],
+      ['Sadachbia','حيوي'], ['Sadaltager','واسع المعرفة']
     ];
     (function(){
       try {
@@ -1221,7 +1249,7 @@
       return from + pick;
     }
 
-    /* ---------- Gemini text-to-speech ---------- */
+    /* ---------- Gemini text-to-speech (cached, key-rotating, with free fallbacks) ---------- */
     function ttsPrompt(text){
       var hasAr = /[\u0600-\u06FF]/.test(text);
       if (!hasAr) return 'Say the following naturally and warmly, like a friendly person talking on a phone call: ' + text;
@@ -1241,48 +1269,126 @@
       return buf;
     }
 
-    async function geminiTtsAudio(text, signal){
+    /* every sentence that was ever synthesised is saved on the phone (IndexedDB):
+       replaying it, or previewing a voice again, is instant and costs no quota */
+    var ttsDbPromise = null;
+    function ttsDb(){
+      if (ttsDbPromise) return ttsDbPromise;
+      ttsDbPromise = new Promise(function(resolve){
+        try {
+          var r = indexedDB.open('mgai_tts', 1);
+          r.onupgradeneeded = function(){ r.result.createObjectStore('c'); };
+          r.onsuccess = function(){ resolve(r.result); };
+          r.onerror = function(){ resolve(null); };
+        } catch(e) { resolve(null); }
+      });
+      return ttsDbPromise;
+    }
+    function hashStr(s){
+      var h1 = 5381, h2 = 52711;
+      for (var i = 0; i < s.length; i++) { var c = s.charCodeAt(i); h1 = ((h1 * 33) ^ c) >>> 0; h2 = ((h2 * 33) ^ c) >>> 0; }
+      return h1.toString(36) + h2.toString(36) + s.length;
+    }
+    function ttsCacheKey(voice, model, text){ return voice + '|' + model + '|' + hashStr(text); }
+    async function ttsCacheGet(k){
+      var db = await ttsDb(); if (!db) return null;
+      return new Promise(function(resolve){
+        try { var q = db.transaction('c').objectStore('c').get(k); q.onsuccess = function(){ resolve(q.result || null); }; q.onerror = function(){ resolve(null); }; }
+        catch(e) { resolve(null); }
+      });
+    }
+    async function ttsCachePut(k, v){
+      var db = await ttsDb(); if (!db) return;
+      try {
+        var tx = db.transaction('c', 'readwrite'), st = tx.objectStore('c');
+        st.put(v, k);
+        if (Math.random() < 0.05) {
+          var all = [];
+          st.openCursor().onsuccess = function(e){
+            var c = e.target.result;
+            if (c) { all.push({ k:c.key, t:(c.value && c.value.t) || 0 }); c.continue(); }
+            else if (all.length > 400) { all.sort(function(a, b){ return a.t - b.t; }); all.slice(0, all.length - 300).forEach(function(x){ st.delete(x.k); }); }
+          };
+        }
+      } catch(e) {}
+    }
+
+    var ttsBlockedUntil = 0;   /* after a quota error, skip Gemini for a while so fallbacks start instantly */
+    function ttsKeys(){
+      return [state.apiKey].concat(String(V2.extraKeys || '').split(/[\s,;]+/).filter(function(k){ return k.length > 20 && k !== state.apiKey; }));
+    }
+
+    async function geminiTtsAudio(text, signal, voice){
+      voice = voice || V2.voice;
+      var ck = ttsCacheKey(voice, V2.ttsModel, text);
+      var hit = await ttsCacheGet(ck);
+      if (hit && hit.b64) return pcmToBuffer(hit.b64, hit.rate || 24000);
+      if (Date.now() < ttsBlockedUntil) { var be = new Error('HTTP 429 — حصة الصوت خلصت (هجرّب تاني بعد شوية)'); be.status = 429; throw be; }
       var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(V2.ttsModel) + ':generateContent';
       var body = {
         contents: [{ parts: [{ text: ttsPrompt(text) }] }],
         generationConfig: {
           responseModalities: ['AUDIO'],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: V2.voice } } }
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } }
         }
       };
-      var lastErr = null;
-      for (var attempt = 0; attempt < 2; attempt++) {
-        try {
-          var res = await fetch(url, {
-            method:'POST',
-            headers:{ 'Content-Type':'application/json', 'x-goog-api-key': state.apiKey },
-            body: JSON.stringify(body),
-            signal: signal
-          });
-          if (!res.ok) {
-            var ej = null; try { ej = await res.json(); } catch(e) {}
-            var detail = (ej && ej.error && ej.error.message) || '';
-            var er = new Error('HTTP ' + res.status + (detail ? ' — ' + detail : ''));
-            er.status = res.status;
-            throw er;
+      var keys = ttsKeys(), lastErr = null;
+      for (var ki = 0; ki < keys.length; ki++) {
+        for (var attempt = 0; attempt < 2; attempt++) {
+          try {
+            var res = await fetch(url, {
+              method:'POST',
+              headers:{ 'Content-Type':'application/json', 'x-goog-api-key': keys[ki] },
+              body: JSON.stringify(body),
+              signal: signal
+            });
+            if (!res.ok) {
+              var ej = null; try { ej = await res.json(); } catch(e) {}
+              var er = new Error('HTTP ' + res.status + ((ej && ej.error && ej.error.message) ? ' — ' + ej.error.message : ''));
+              er.status = res.status;
+              throw er;
+            }
+            var j = await res.json();
+            var parts = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts;
+            var ap = null;
+            if (parts) for (var p = 0; p < parts.length; p++) { if (parts[p].inlineData && parts[p].inlineData.data) { ap = parts[p].inlineData; break; } }
+            if (!ap) throw new Error('الموديل رجّع رد من غير صوت');
+            var rm = /rate=(\d+)/.exec(ap.mimeType || '');
+            var rate = rm ? parseInt(rm[1], 10) : 24000;
+            ttsCachePut(ck, { b64: ap.data, rate: rate, t: Date.now() });
+            return pcmToBuffer(ap.data, rate);
+          } catch (err) {
+            if (err && err.name === 'AbortError') throw err;
+            lastErr = err;
+            if (err && err.status === 429) break;                       /* next key */
+            if (err && err.status && err.status < 500) throw err;       /* real client error */
           }
-          var j = await res.json();
-          var parts = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts;
-          var audioPart = null;
-          if (parts) for (var p = 0; p < parts.length; p++) { if (parts[p].inlineData && parts[p].inlineData.data) { audioPart = parts[p].inlineData; break; } }
-          if (!audioPart) throw new Error('الموديل رجّع رد من غير صوت');
-          var rm = /rate=(\d+)/.exec(audioPart.mimeType || '');
-          return pcmToBuffer(audioPart.data, rm ? parseInt(rm[1], 10) : 24000);
-        } catch (err) {
-          if (err && err.name === 'AbortError') throw err;
-          lastErr = err;
-          if (err && (err.status === 429 || err.status === 400 || err.status === 401 || err.status === 403 || err.status === 404)) break;
         }
       }
+      if (lastErr && lastErr.status === 429) ttsBlockedUntil = Date.now() + 8 * 60000;
       throw lastErr || new Error('TTS failed');
     }
 
-    var tts = { gen:0, queue:[], playing:false, done:false, opts:null, src:null, ctrl:null, useFallback:false, errored:false };
+    /* free fallback: Google's public translate voice (unofficial, no key, no quota, not Egyptian) */
+    function googleTtsElements(text){
+      var ar = (text.match(/[\u0600-\u06FF]/g) || []).length, la = (text.match(/[A-Za-z]/g) || []).length;
+      var lang = ar >= la ? 'ar' : 'en';
+      var pieces = [], rest = text.trim();
+      while (rest.length > 180) { var cut = rest.lastIndexOf(' ', 180); if (cut < 60) cut = 180; pieces.push(rest.slice(0, cut)); rest = rest.slice(cut).trim(); }
+      if (rest) pieces.push(rest);
+      return Promise.all(pieces.map(function(p){
+        return new Promise(function(resolve, reject){
+          var a = new Audio(), done = false;
+          var to = setTimeout(function(){ if (!done) { done = true; reject(new Error('صوت جوجل مردّش')); } }, 10000);
+          a.preload = 'auto';
+          a.oncanplaythrough = a.onloadeddata = function(){ if (!done) { done = true; clearTimeout(to); resolve(a); } };
+          a.onerror = function(){ if (!done) { done = true; clearTimeout(to); reject(new Error('صوت جوجل اتحجب')); } };
+          a.src = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=' + lang + '&q=' + encodeURIComponent(p);
+        });
+      }));
+    }
+
+    var tts = { gen:0, queue:[], playing:false, done:false, opts:null, src:null, audioEl:null, ctrl:null, errored:false, voice:null };
 
     function ttsStop(){
       tts.gen++;
@@ -1290,12 +1396,13 @@
       if (tts.ctrl) { try { tts.ctrl.abort(); } catch(e) {} }
       tts.ctrl = null;
       if (tts.src) { try { tts.src.stop(); } catch(e) {} tts.src = null; }
+      if (tts.audioEl) { try { tts.audioEl.pause(); tts.audioEl.dispatchEvent(new Event('ended')); } catch(e) {} tts.audioEl = null; }
       if (ttsSupported) { try { window.speechSynthesis.cancel(); } catch(e) {} }
     }
     function ttsStart(opts){
       ttsStop();
       tts.opts = opts || {};
-      tts.useFallback = false;
+      tts.voice = (opts && opts.voice) || null;
       tts.errored = false;
       tts.ctrl = new AbortController();
     }
@@ -1305,15 +1412,46 @@
       console.error('Gemini TTS error:', err);
       if (tts.opts && tts.opts.onError) tts.opts.onError(err);
     }
+
+    /* picks the best available engine for one chunk: Gemini -> Google -> (null = device voice) */
+    async function ttsProvide(text, signal, voice){
+      var eng = V2.ttsEngine || 'auto';
+      if (eng === 'device') return null;
+      var gemErr = null;
+      if (eng === 'auto' || eng === 'gemini') {
+        try { return { kind:'buf', buf: await geminiTtsAudio(text, signal, voice) }; }
+        catch (e) { if (e && e.name === 'AbortError') throw e; gemErr = e; if (eng === 'gemini') throw e; }
+      }
+      try {
+        var els = await googleTtsElements(text);
+        if (gemErr) ttsReportError(gemErr);
+        return { kind:'els', els: els };
+      } catch (e2) {
+        if (e2 && e2.name === 'AbortError') throw e2;
+        if (eng === 'google') throw e2;
+      }
+      if (gemErr) ttsReportError(gemErr);
+      return null;
+    }
+
+    function ttsKick(){
+      /* keep at most two chunks being synthesised ahead of playback (saves quota) */
+      var started = 0, i;
+      for (i = 0; i < tts.queue.length; i++) if (tts.queue[i].audio) started++;
+      for (i = 0; i < tts.queue.length && started < 2; i++) {
+        var it = tts.queue[i];
+        if (!it.audio) {
+          it.audio = ttsProvide(it.text, tts.ctrl ? tts.ctrl.signal : undefined, tts.voice);
+          it.audio.catch(function(){});
+          started++;
+        }
+      }
+    }
     function ttsEnqueue(text){
       text = (text || '').trim();
       if (!text || !hasWords(text)) return;
-      var item = { text:text, audio:null };
-      if (!tts.useFallback && V2.geminiTts && state.apiKey) {
-        item.audio = geminiTtsAudio(text, tts.ctrl.signal);
-        item.audio.catch(function(){});
-      }
-      tts.queue.push(item);
+      tts.queue.push({ text:text, audio:null });
+      ttsKick();
       ttsPump();
     }
     function ttsFinish(){ tts.done = true; ttsPump(); }
@@ -1329,15 +1467,25 @@
         s.start();
       });
     }
+    async function playEls(els){
+      for (var i = 0; i < els.length; i++) {
+        var a = els[i];
+        await new Promise(function(resolve){
+          tts.audioEl = a;
+          a.onended = resolve; a.onerror = resolve;
+          var pr = a.play();
+          if (pr && pr.catch) pr.catch(resolve);
+        });
+        if (!tts.audioEl) return;   /* stopped */
+      }
+    }
     function speakBrowserChunk(text){
       return new Promise(function(resolve){
         if (!ttsSupported) { resolve(); return; }
         var u = new SpeechSynthesisUtterance(text);
         var v = getSelectedVoice(); if (v) u.voice = v;
-        var preset = VOICE_PRESETS[activePreset] || VOICE_PRESETS.male_young;
         var rs = els.voiceRateInput ? parseFloat(els.voiceRateInput.value) : 1;
-        u.pitch = preset.pitch || 1;
-        u.rate = (preset.rate || 1) * (isNaN(rs) ? 1 : rs);
+        u.rate = isNaN(rs) ? 1 : rs;
         var finished = false, timer = null;
         function fin(){ if (finished) return; finished = true; clearTimeout(timer); resolve(); }
         timer = setTimeout(fin, 4000 + text.length * 130);
@@ -1359,31 +1507,48 @@
       }
       tts.playing = true;
       var item = tts.queue.shift();
+      if (!item.audio) { item.audio = ttsProvide(item.text, tts.ctrl ? tts.ctrl.signal : undefined, tts.voice); item.audio.catch(function(){}); }
+      ttsKick();
       try {
-        var buf = null;
-        if (item.audio) {
-          try { buf = await item.audio; }
-          catch (err) {
-            if (gen !== tts.gen) return;
-            tts.useFallback = true;
-            ttsReportError(err);
-          }
-        }
+        var res = null;
+        try { res = await item.audio; }
+        catch (err) { if (gen !== tts.gen) return; ttsReportError(err); }
         if (gen !== tts.gen) return;
         if (tts.opts && tts.opts.onChunk) tts.opts.onChunk(item.text);
-        if (buf) await playBuffer(buf); else await speakBrowserChunk(item.text);
+        if (res && res.kind === 'buf') await playBuffer(res.buf);
+        else if (res && res.kind === 'els') await playEls(res.els);
+        else await speakBrowserChunk(item.text);
       } catch (e) { console.error(e); }
       if (gen !== tts.gen) return;
       tts.playing = false;
       ttsPump();
     }
 
-    /* speak a whole finished message (🔊 button, test button) */
+    /* speak a whole finished message (🔊 button, previews) */
     function speakText(text, opts){
       opts = opts || {};
       getAudioCtx();
-      // Force local browser TTS for reading messages to avoid API quota issues
-      return speakTextBrowser(text, opts);
+      if ((V2.ttsEngine || 'auto') === 'device' || !state.apiKey) return speakTextBrowser(text, opts);
+      stopSpeaking();
+      currentSpeakingMessageId = opts.messageId || null;
+      ttsLoadingId = opts.messageId || null;
+      refreshSpeakButtonsUI();
+      ttsStart({
+        voice: opts.voice,
+        onChunk: function(){ if (ttsLoadingId) { ttsLoadingId = null; refreshSpeakButtonsUI(); } },
+        onEnd: function(){ currentSpeakingMessageId = null; ttsLoadingId = null; refreshSpeakButtonsUI(); if (opts.onEnd) opts.onEnd(); },
+        onError: function(err){ if (opts.onError) opts.onError(err); }
+      });
+      var raw = text || '', from = 0, n = 0;
+      while (from < raw.length) {
+        var first = n === 0;
+        var cut = nextSpeechCut(raw, from, true, 0, first ? 110 : 420);
+        if (cut <= from) break;
+        var piece = stripMarkdownForSpeech(raw.slice(from, cut));
+        from = cut;
+        if (hasWords(piece)) { n++; ttsEnqueue(piece); }
+      }
+      ttsFinish();
     }
 
     /* ---------- microphone: always-on voice activity detection ---------- */
@@ -1424,6 +1589,7 @@
     function micProcess(e){
       if (!voiceMode.open) return;
       var inp = e.inputBuffer.getChannelData(0);
+      if (voiceMode.live) { if (live.ready) liveSendMic(inp, e.inputBuffer.sampleRate); return; }
       var n = inp.length, sum = 0, i;
       for (i = 0; i < n; i++) sum += inp[i] * inp[i];
       var rms = Math.sqrt(sum / n);
@@ -1596,11 +1762,13 @@
       if (!voiceMode.open) { micClose(); return; }
       mic.muted = false;
       refreshMuteBtn();
-      startListening();
+      await beginVoice();
+      if (!voiceMode.open) liveClose();
     }
 
     function closeVoiceMode(){
       voiceMode.open = false;
+      liveClose();
       voiceMode.turn++;
       ttsStop();
       if (state.controller) { try { state.controller.abort(); } catch(e) {} }
@@ -1638,7 +1806,7 @@
       var sp = voiceMode.sp;
       for (var guard = 0; guard < 50; guard++) {
         var first = sp.n === 0;
-        var cut = nextSpeechCut(full, sp.cut, final, first ? 30 : 200, first ? 260 : 450);
+        var cut = nextSpeechCut(full, sp.cut, final, first ? 20 : 120, first ? 120 : 420);
         if (cut <= sp.cut) break;
         var piece = stripMarkdownForSpeech(full.slice(sp.cut, cut));
         sp.cut = cut;
@@ -1692,6 +1860,280 @@
         });
         if (!state.isGenerating) { ttsStop(); startListening(); }
       })();
+    }
+
+    /* ================= Gemini Live: a real two-way voice call (like ChatGPT voice) ================= */
+    /* One WebSocket: your microphone streams up, the model's voice streams down, and the
+       server detects when you start/stop talking (so you can interrupt it). The words of both
+       sides are transcribed and saved into the chat, so nothing is lost. */
+    var LIVE_DEFAULT_MODELS = ['gemini-2.5-flash-native-audio-preview-09-2025', 'gemini-2.5-flash-native-audio-preview-12-2025', 'gemini-2.5-flash-native-audio-latest'];
+    var LIVE_CACHE_KEY = 'mgai_livemodels_v1';
+    var live = { ws:null, ready:false, model:null, handle:null, nextT:0, sources:[], userBuf:'', aiBuf:'', turnDone:true, speaking:false, drop:false, q:Promise.resolve(), sendBuf:[], sendLen:0, closing:false, retries:0, noSearch:false };
+
+    async function liveDiscoverModels(){
+      try {
+        var c = JSON.parse(localStorage.getItem(LIVE_CACHE_KEY) || 'null');
+        if (c && c.list && c.list.length && Date.now() - c.t < 86400000 && c.k === String(state.apiKey).slice(-8)) return c.list;
+      } catch(e) {}
+      var found = [], token = '';
+      try {
+        for (var page = 0; page < 5; page++) {
+          var res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200' + (token ? '&pageToken=' + encodeURIComponent(token) : ''), { headers:{ 'x-goog-api-key': state.apiKey } });
+          if (!res.ok) break;
+          var j = await res.json();
+          (j.models || []).forEach(function(m){
+            if ((m.supportedGenerationMethods || []).indexOf('bidiGenerateContent') !== -1) found.push(String(m.name).replace(/^models\//, ''));
+          });
+          token = j.nextPageToken;
+          if (!token) break;
+        }
+      } catch(e) {}
+      var audio = found.filter(function(n){ return /native-audio|live|audio/i.test(n); });
+      if (audio.length) found = audio;
+      found.sort(function(a, b){ return b.localeCompare(a, 'en', { numeric:true }); });
+      if (found.length) { try { localStorage.setItem(LIVE_CACHE_KEY, JSON.stringify({ t:Date.now(), k:String(state.apiKey).slice(-8), list:found })); } catch(e) {} }
+      return found;
+    }
+    async function liveModelOrder(){
+      var disc = await liveDiscoverModels();
+      var all = [V2.liveModel, V2.liveModelOk].concat(disc, LIVE_DEFAULT_MODELS);
+      var out = [];
+      all.forEach(function(m){ m = String(m || '').trim(); if (m && out.indexOf(m) === -1) out.push(m); });
+      return out;
+    }
+
+    var LIVE_PROMPT = '\n\n[مكالمة صوتية مباشرة] إنت دلوقتي في مكالمة تليفون حية مع المستخدم، وكلامك بيتسمع بصوت عالي. اتكلم زي إنسان ذكي وودود: جمل طبيعية قصيرة ومتصلة، من غير ماركداون ولا رموز ولا قوايم ولا كود بصوت عالي (لو المطلوب كود قول إنك هتكتبه له في الشات واشرحه بالكلام). ردّ بنفس لغة ولهجة المستخدم بالظبط: لو بيتكلم مصري ردّ بعامية مصرية طبيعية (مش فصحى)، ولو إنجليزي ردّ إنجليزي، ولو بيخلط اتكلم بنفس الخلطة. المصطلحات التقنية الإنجليزية انطقها إنجليزي سليم. الرد مفيد وفيه معلومة حقيقية، ومتوسط الطول، وطوّل أكتر لو السؤال محتاج شرح. سيبه يقاطعك براحته.';
+
+    function buildLiveSystem(){
+      var sys = (state.systemPrompt && state.systemPrompt.trim()) ? state.systemPrompt : '';
+      var nowD = new Date();
+      sys += '\n\nمعلومة للسياق: التاريخ والوقت دلوقتي عند المستخدم: ' + nowD.toLocaleString('ar-EG', { dateStyle:'full', timeStyle:'short' }) + '.';
+      sys += memoryBlock();
+      sys += LIVE_PROMPT;
+      var recent = (state.messages || []).filter(function(m){ return !m.error && m.content; }).slice(-8).map(function(m){
+        return (m.role === 'user' ? 'المستخدم' : 'إنت') + ': ' + splitMemory(String(m.content)).clean.replace(/\s+/g, ' ').slice(0, 350);
+      });
+      if (recent.length) sys += '\n\nآخر الكلام في الشات قبل المكالمة (للسياق بس):\n' + recent.join('\n');
+      return sys;
+    }
+
+    function buildLiveSetup(model, o){
+      var setup = {
+        model: 'models/' + model,
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: V2.voice } } }
+        },
+        systemInstruction: { parts: [{ text: buildLiveSystem() }] },
+        inputAudioTranscription: {},
+        outputAudioTranscription: {}
+      };
+      if (o.level === 0) {
+        setup.realtimeInputConfig = { automaticActivityDetection: { endOfSpeechSensitivity:'END_SENSITIVITY_LOW', silenceDurationMs:900 } };
+        setup.contextWindowCompression = { slidingWindow: {} };
+        setup.sessionResumption = o.handle ? { handle: o.handle } : {};
+        if (o.search) setup.tools = [{ googleSearch: {} }];
+      }
+      return setup;
+    }
+
+    function readWsData(d){
+      if (typeof d === 'string') return Promise.resolve(d);
+      if (d && d.text) return d.text();
+      return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(String(r.result || '')); }; r.readAsText(new Blob([d])); });
+    }
+
+    function liveOpen(model, o){
+      return new Promise(function(resolve, reject){
+        var ws, done = false, timer;
+        function fail(e){ if (done) return; done = true; clearTimeout(timer); try { ws.close(); } catch(_) {} reject(e); }
+        try { ws = new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(state.apiKey)); }
+        catch (e) { reject(e); return; }
+        timer = setTimeout(function(){ fail(new Error('الاتصال اتأخر (timeout)')); }, 12000);
+        var q = Promise.resolve();
+        ws.onopen = function(){ ws.send(JSON.stringify({ setup: buildLiveSetup(model, o) })); };
+        ws.onmessage = function(ev){
+          q = q.then(function(){ return readWsData(ev.data); }).then(function(txt){
+            var m; try { m = JSON.parse(txt); } catch(e) { return; }
+            if (!done) {
+              if (m.setupComplete) { done = true; clearTimeout(timer); resolve(ws); }
+              else if (m.error) fail(new Error((m.error.message || JSON.stringify(m.error)).slice(0, 200)));
+              return;
+            }
+            if (live.ws === ws) liveHandle(m);
+          });
+        };
+        ws.onerror = function(){ if (!done) fail(new Error('WebSocket error')); };
+        ws.onclose = function(ev){
+          if (!done) fail(new Error('closed ' + ev.code + (ev.reason ? ' — ' + ev.reason : '')));
+          else if (live.ws === ws) liveOnClose(ev);
+        };
+      });
+    }
+
+    async function startLive(){
+      if (!state.apiKey) throw new Error('مفيش مفتاح');
+      live.closing = false;
+      setVoiceState('thinking', 'بوصّل المكالمة...');
+      var models = await liveModelOrder(), lastErr = null;
+      for (var i = 0; i < models.length && i < 5; i++) {
+        for (var level = 0; level < 2; level++) {
+          if (!voiceMode.open) throw new Error('اتقفلت');
+          var withSearch = !!(V2.search && !live.noSearch && level === 0);
+          try {
+            var ws = await liveOpen(models[i], { level:level, search:withSearch, handle: live.handle });
+            live.ws = ws; live.model = models[i]; live.ready = true; live.retries = 0;
+            V2.liveModelOk = models[i]; saveV2();
+            voiceMode.live = true;
+            liveResetPlayback();
+            mic.echoUntil = Date.now() + 300;
+            setVoiceState('listening', 'المكالمة شغالة — اتكلم براحتك');
+            return true;
+          } catch (e) {
+            lastErr = e;
+            if (withSearch) live.noSearch = true;
+            if (/429|quota|RESOURCE_EXHAUSTED/i.test(e.message || '')) throw e;
+          }
+        }
+      }
+      live.handle = null;
+      throw lastErr || new Error('مفيش موديل لايف متاح');
+    }
+
+    function liveResetPlayback(){
+      live.sources.forEach(function(s){ try { s.onended = null; s.stop(); } catch(e) {} });
+      live.sources = []; live.nextT = 0; live.speaking = false;
+    }
+    function liveStopPlayback(){ liveResetPlayback(); }
+
+    function liveEnqueueAudio(b64, rate){
+      if (live.drop) return;
+      var ctx = getAudioCtx(); if (!ctx) return;
+      var buf = pcmToBuffer(b64, rate || 24000);
+      var s = ctx.createBufferSource();
+      s.buffer = buf; s.connect(ctx.destination);
+      var t = Math.max(ctx.currentTime + 0.03, live.nextT);
+      s.start(t);
+      live.nextT = t + buf.duration;
+      live.sources.push(s);
+      s.onended = function(){
+        var i = live.sources.indexOf(s); if (i !== -1) live.sources.splice(i, 1);
+        if (!live.sources.length) livePlaybackEnded();
+      };
+      if (!live.speaking) { live.speaking = true; if (voiceMode.open && voiceMode.live) setVoiceState('speaking'); }
+    }
+    function livePlaybackEnded(){
+      live.speaking = false;
+      mic.echoUntil = Date.now() + 600;
+      if (live.turnDone && voiceMode.open && voiceMode.live) setVoiceState('listening', 'سامعك.. اتكلم');
+    }
+
+    function liveFlushTurn(){
+      var u = live.userBuf.trim(), a = splitMemory(live.aiBuf).clean.trim();
+      live.userBuf = ''; live.aiBuf = '';
+      if (!u && !a) return;
+      try {
+        hideEmptyState();
+        if (u) addMessage('user', u);
+        if (a) addMessage('assistant', a);
+        persistCurrentConversation();
+      } catch(e) { console.error(e); }
+    }
+
+    function liveHandle(m){
+      if (m.sessionResumptionUpdate && m.sessionResumptionUpdate.newHandle) live.handle = m.sessionResumptionUpdate.newHandle;
+      if (m.goAway) { toast('السيرفر هيجدّد الاتصال بعد لحظات...'); }
+      var sc = m.serverContent;
+      if (!sc) return;
+      if (sc.interrupted) { live.drop = false; liveStopPlayback(); liveFlushTurn(); live.turnDone = true; if (voiceMode.open) setVoiceState('listening'); return; }
+      if (sc.inputTranscription && sc.inputTranscription.text) {
+        if (live.turnDone) { live.turnDone = false; }
+        live.userBuf += sc.inputTranscription.text;
+        if (els.voiceTranscript && !live.speaking) els.voiceTranscript.textContent = live.userBuf.trim();
+        if (voiceMode.state === 'listening' && els.voiceStatusText) els.voiceStatusText.textContent = 'سامعك...';
+      }
+      if (sc.modelTurn && sc.modelTurn.parts) {
+        live.turnDone = false;
+        sc.modelTurn.parts.forEach(function(p){
+          if (p.inlineData && p.inlineData.data) {
+            var rm = /rate=(\d+)/.exec(p.inlineData.mimeType || '');
+            liveEnqueueAudio(p.inlineData.data, rm ? parseInt(rm[1], 10) : 24000);
+          }
+        });
+      }
+      if (sc.outputTranscription && sc.outputTranscription.text) {
+        live.aiBuf += sc.outputTranscription.text;
+        if (els.voiceTranscript) els.voiceTranscript.textContent = splitMemory(live.aiBuf).clean.trim().slice(-220);
+      }
+      if (sc.generationComplete) live.drop = false;
+      if (sc.turnComplete) {
+        live.drop = false;
+        live.turnDone = true;
+        liveFlushTurn();
+        if (!live.sources.length) { live.speaking = false; if (voiceMode.open) setVoiceState('listening', 'سامعك.. اتكلم'); }
+      }
+    }
+
+    function liveSendMic(inp, sr){
+      if (!live.ready || !live.ws || live.ws.readyState !== 1 || mic.muted) return;
+      if ((live.speaking || Date.now() < mic.echoUntil) && !V2.bargeIn) return;   /* half-duplex unless you enabled barge-in */
+      var d = downsampleTo16k(inp, sr), pcm = new Int16Array(d.length);
+      for (var i = 0; i < d.length; i++) { var x = Math.max(-1, Math.min(1, d[i])); pcm[i] = x < 0 ? x * 0x8000 : x * 0x7FFF; }
+      live.sendBuf.push(pcm); live.sendLen += pcm.length;
+      if (live.sendLen >= 1600) {
+        var all = new Int16Array(live.sendLen), off = 0;
+        live.sendBuf.forEach(function(a){ all.set(a, off); off += a.length; });
+        live.sendBuf = []; live.sendLen = 0;
+        try { live.ws.send(JSON.stringify({ realtimeInput:{ audio:{ data: bytesToB64(new Uint8Array(all.buffer)), mimeType:'audio/pcm;rate=16000' } } })); } catch(e) {}
+      }
+    }
+
+    function liveInterrupt(){
+      live.drop = true;
+      liveStopPlayback();
+      mic.echoUntil = 0;
+      if (voiceMode.open) setVoiceState('listening', 'سامعك.. اتكلم');
+    }
+
+    function liveOnClose(ev){
+      live.ready = false;
+      if (live.closing || !voiceMode.open || voiceMode.paused) return;
+      liveFlushTurn();
+      if (live.retries < 2) {
+        live.retries++;
+        setVoiceState('thinking', 'الاتصال اتقطع.. برجّعه');
+        startLive().catch(function(err){ liveGiveUp(err); });
+      } else {
+        liveGiveUp(new Error('closed ' + (ev && ev.code) + (ev && ev.reason ? ' — ' + ev.reason : '')));
+      }
+    }
+    function liveGiveUp(err){
+      if (!voiceMode.open) return;
+      toast('المكالمة اللايف وقفت (' + errShort(err) + ') — كمّلت بالوضع العادي.');
+      voiceMode.live = false;
+      startListening();
+    }
+    function liveClose(){
+      live.closing = true; live.ready = false;
+      var ws = live.ws; live.ws = null;
+      if (ws) { try { ws.close(); } catch(e) {} }
+      liveStopPlayback();
+      liveFlushTurn();
+      live.sendBuf = []; live.sendLen = 0; live.turnDone = true;
+      voiceMode.live = false;
+    }
+
+    async function beginVoice(){
+      if (V2.liveMode) {
+        try { await startLive(); return; }
+        catch (err) {
+          console.error('live failed', err);
+          if (!voiceMode.open) return;
+          toast('المكالمة اللايف مش شغالة دلوقتي (' + errShort(err) + ') — هشغّل الوضع العادي.');
+        }
+      }
+      voiceMode.live = false;
+      startListening();
     }
 
     /* ================= long-term memory (self-learning) ================= */
@@ -1851,7 +2293,7 @@
         els.sheet.hidden = true;
         els.backdrop.hidden = true;
       }, 260);
-      if (voiceMode.open && voiceMode.paused) { voiceMode.paused = false; startListening(); }
+      if (voiceMode.open && voiceMode.paused) { voiceMode.paused = false; beginVoice(); }
     }
 
     function openSidebar(){
@@ -3359,8 +3801,6 @@
       }).catch(function(){}).then(function(){
         var label = state.currentBuild ? 'الإصدار الحالي: build ' + state.currentBuild : 'الإصدار الحالي: نسخة تطوير (غير مبنية من GitHub)';
         $('versionInfo').textContent = label;
-        var sub = document.querySelector('.brand-sub');
-        if (sub && state.currentBuild) sub.textContent = 'مساعد برمجة احترافي • build ' + state.currentBuild;
       });
     }
 
@@ -3443,6 +3883,7 @@
     els.voiceCloseBtn.addEventListener('click', closeVoiceMode);
     els.voiceSettingsBtn.addEventListener('click', function(){
       voiceMode.turn++; voiceMode.paused = true;
+      liveClose();
       ttsStop();
       if (state.controller) { try { state.controller.abort(); } catch(e) {} }
       setVoiceState('idle', 'الإعدادات مفتوحة...');
@@ -3450,6 +3891,7 @@
     });
     els.voiceOrb.addEventListener('click', function(){
       var st = voiceMode.state;
+      if (voiceMode.live) { if (st === 'speaking') liveInterrupt(); return; }
       if (st === 'listening' && mic.speaking) finishUtterance();
       else if (st === 'speaking' || st === 'thinking') voiceInterrupt();
     });
@@ -3459,28 +3901,53 @@
       refreshMuteBtn();
       if (voiceMode.state === 'listening') setVoiceState('listening');
     });
+    function renderGeminiVoiceList(){
+      var box = document.getElementById('geminiVoiceList'); if (!box) return;
+      box.innerHTML = '';
+      GEMINI_VOICES.forEach(function(v){
+        var row = document.createElement('div');
+        row.className = 'vrow' + (V2.voice === v[0] ? ' sel' : '');
+        row.innerHTML = '<span class="vtick"></span><span class="vname"></span><span class="vtrait"></span><button type="button" class="vplay" aria-label="جرّب الصوت">▶</button>';
+        row.querySelector('.vtick').textContent = V2.voice === v[0] ? '✓' : '';
+        row.querySelector('.vname').textContent = v[0];
+        row.querySelector('.vtrait').textContent = v[1];
+        row.addEventListener('click', function(){
+          V2.voice = v[0]; saveV2(); renderGeminiVoiceList();
+          toast('✓ اتثبّت الصوت: ' + v[0]);
+        });
+        row.querySelector('.vplay').addEventListener('click', function(ev){
+          ev.stopPropagation();
+          if (!state.apiKey) { toast('ضيف مفتاح Gemini الأول.'); return; }
+          toast('بجهّز عيّنة ' + v[0] + '...');
+          speakText('أهلاً بيك يا باشا! أنا صوت ' + v[0] + '، وبقدر أتكلم مصري، وكمان English naturally.', { voice: v[0], onError: function(err){ toast('العيّنة فشلت: ' + errShort(err)); } });
+        });
+        box.appendChild(row);
+      });
+    }
     (function initV2UI(){
       var g = function(id){ return document.getElementById(id); };
-      var sel = g('geminiVoiceInput');
-      GEMINI_VOICES.forEach(function(v){ var o = document.createElement('option'); o.value = v[0]; o.textContent = v[1]; sel.appendChild(o); });
-      sel.value = V2.voice;
-      g('geminiTtsInput').checked = !!V2.geminiTts;
+      g('ttsEngineInput').value = V2.ttsEngine || 'auto';
+      g('liveModeInput').checked = V2.liveMode !== false;
+      g('liveModelInput').value = V2.liveModel || '';
       g('ttsModelInput').value = V2.ttsModel;
       g('bargeInInput').checked = !!V2.bargeIn;
       g('thinkingInput').value = V2.thinking;
       g('searchInput').checked = V2.search !== false;
       g('extraKeysInput').value = V2.extraKeys || '';
       function syncV2(){
-        V2.voice = sel.value;
-        V2.geminiTts = g('geminiTtsInput').checked;
+        V2.ttsEngine = g('ttsEngineInput').value;
+        V2.liveMode = g('liveModeInput').checked;
+        V2.liveModel = g('liveModelInput').value.trim();
         V2.ttsModel = g('ttsModelInput').value.trim() || 'gemini-2.5-flash-preview-tts';
         V2.bargeIn = g('bargeInInput').checked;
         V2.thinking = g('thinkingInput').value;
         V2.search = g('searchInput').checked;
         V2.extraKeys = g('extraKeysInput').value;
+        ttsBlockedUntil = 0;
         saveV2();
       }
-      ['geminiVoiceInput','geminiTtsInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
+      ['ttsEngineInput','liveModeInput','liveModelInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
+      renderGeminiVoiceList();
     })();
 
     document.getElementById('backupExportBtn').addEventListener('click', exportBackup);
