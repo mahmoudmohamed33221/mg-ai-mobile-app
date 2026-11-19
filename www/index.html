@@ -9,7 +9,7 @@
 <title>MG.ai CODER — مساعد برمجة احترافي</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://</css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#060B07;
@@ -489,6 +489,19 @@
   .vrow .vtrait{flex:1;font-size:12px;color:var(--text-secondary);}
   .vrow .vplay{width:32px;height:32px;flex-shrink:0;border-radius:9px;border:1px solid var(--border);background:var(--bg);color:var(--text-secondary);font-size:13px;cursor:pointer;}
   .vrow .vplay:active{transform:scale(.94);}
+  .voice-orb{--oc:140,148,144;--lvl:0;}
+  .voice-orb.c-gray{--oc:140,148,144;}
+  .voice-orb.c-green{--oc:57,255,20;}
+  .voice-orb.c-blue{--oc:110,205,255;}
+  .voice-orb.c-red{--oc:255,72,72;}
+  .voice-orb[class*=" c-"] .voice-orb-core{background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.5), rgba(var(--oc),.95) 45%, rgba(var(--oc),.35) 100%);box-shadow:0 0 40px rgba(var(--oc),.4),0 0 0 1px rgba(var(--oc),.3) inset;transition:background .25s, box-shadow .25s;}
+  .voice-orb[class*=" c-"] .voice-orb-ring{border-color:rgba(var(--oc),.5);transform:scale(calc(1 + var(--lvl) * .2));transition:transform .09s, border-color .25s;}
+  .voice-orb[class*=" c-"] .voice-orb-bars span{background:rgb(var(--oc));}
+  @keyframes orb-pulse-ring-c{0%{box-shadow:0 0 0 0 rgba(var(--oc),.45);}100%{box-shadow:0 0 0 26px rgba(var(--oc),0);}}
+  .voice-orb.c-blue.state-listening .voice-orb-ring,.voice-orb.c-green.state-listening .voice-orb-ring{animation:orb-pulse-ring-c 1.5s ease-out infinite;}
+  .voice-orb.state-standby .voice-orb-core{opacity:.6;animation:orb-breathe 4.2s ease-in-out infinite;}
+  .voice-orb.state-standby .voice-orb-ring{opacity:.55;}
+  .voice-orb.c-red.state-speaking .voice-orb-core{opacity:.25;}
 </style>
 </head>
 <body>
@@ -646,6 +659,11 @@
       <label class="check-row"><input type="checkbox" id="liveModeInput"><span>مكالمة لايف مباشرة (Gemini Live): بتتكلم وهو بيسمعك ويرد عليك بصوته في نفس اللحظة زي ChatGPT</span></label>
       <label for="liveModelInput" style="margin-top:8px;">موديل اللايف (سيبه فاضي = اختيار تلقائي)</label>
       <input type="text" id="liveModelInput" placeholder="تلقائي" autocomplete="off" spellcheck="false" dir="ltr">
+      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="wakeModeInput"><span>نظام النداء «M-G»: الدايرة رمادي وهو مستنيك، ولما تقول «M-G» بيسمعك. أخضر = مستني أمرك، أزرق = سامعك، أحمر = بيرد عليك</span></label>
+      <label for="idleSecInput" style="margin-top:8px;">يرجع للانتظار بعد صمت</label>
+      <select id="idleSecInput"><option value="8">٨ ثواني</option><option value="12">١٢ ثانية</option><option value="20">٢٠ ثانية</option><option value="30">٣٠ ثانية</option></select>
+      <label for="endMsInput" style="margin-top:8px;">سرعة الرد بعد ما تسكت</label>
+      <select id="endMsInput"><option value="600">سريع جدًا (ممكن يقاطعك لو بتتمهل)</option><option value="800">متوازن</option><option value="1200">صبور (يستنى لو بتفكر)</option></select>
       <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="bargeInInput"><span>قاطعه بصوتك وهو بيتكلم (اقفلها لو من غير سماعة وبيسمع نفسه — وقتها اضغط على الدايرة عشان تقاطعه)</span></label>
       <div class="hint">اللايف بيشتغل بمفتاح Gemini نفسه وله حصة لوحده غير حصة الشات والقراءة. كلام المكالمة بيتسجّل في الشات.</div>
     </div>
@@ -659,7 +677,7 @@
         <option value="device">صوت الجهاز بس</option>
       </select>
       <label for="ttsModelInput" style="margin-top:8px;">موديل Gemini للقراءة</label>
-      <input type="text" id="ttsModelInput" placeholder="gemini-2.5-flash-preview-tts" autocomplete="off" spellcheck="false" dir="ltr">
+      <input type="text" id="ttsModelInput" placeholder="gemini-3.8-flash-tts" autocomplete="off" spellcheck="false" dir="ltr">
       <button type="button" class="text-btn" id="voiceTestBtn" style="width:100%;padding:10px;margin-top:8px;">🔊 جرّب الصوت المثبّت</button>
       <div class="hint">كل جملة بتتقري بتتسجّل على تليفونك، فلو اتقرت تاني بتشتغل فورًا ومن غير ما تستهلك من الحصة.</div>
     </div>
@@ -1114,7 +1132,7 @@
           if (currentSpeakingMessageId === msg.id) stopSpeaking();
           else speakText(msg.content, { 
             messageId: msg.id, 
-            onError: function(err) { console.error('TTS Error:', err); toast('صوت Gemini فشل: ' + errShort(err)); } 
+            onError: function(err) { console.error('TTS Error:', err); toast(friendlyTtsError(err)); } 
           });
         });
         speakButtonRegistry[msg.id] = speakBtn;
@@ -1172,7 +1190,7 @@
         if (!state.apiKey) { toast('ضيف مفتاح Gemini الأول وتحت اضغط حفظ.'); return; }
         toast('بجهّز الصوت...');
         speakText('أهلاً بيك يا باشا! أنا MG.ai، وجاهز نتكلم مصري زي ما تحب. And I can also speak English naturally when you need it.', {
-          onError: function(err){ toast('صوت Gemini فشل: ' + errShort(err)); }
+          onError: function(err){ toast(friendlyTtsError(err)); }
         });
       });
     }
@@ -1184,7 +1202,7 @@
        speech->text (audio is sent to Gemini), and a continuous voice-activity loop so the
        call never "stops hearing you" after the first sentence. */
     var V2_KEY = 'mgai_voice_v2';
-    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'' };
+    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:800, sttModel:'' };
     var GEMINI_VOICES = [
       ['Kore','حازم وواضح'], ['Puck','مرِح ومتحمس'], ['Charon','رزين ومعلوماتي'], ['Fenrir','حماسي'],
       ['Aoede','خفيف ومريح'], ['Leda','شبابي'], ['Orus','قوي وحازم'], ['Zephyr','مشرق'],
@@ -1201,6 +1219,7 @@
         Object.keys(V2).forEach(function(k){ if (s[k] !== undefined) V2[k] = s[k]; });
       } catch(e) {}
     })();
+    if (V2.ttsModel === 'gemini-2.5-flash-preview-tts' && !V2.ttsMigrated) { V2.ttsModel = 'gemini-3.8-flash-tts'; V2.ttsMigrated = true; }
     function saveV2(){ try { localStorage.setItem(V2_KEY, JSON.stringify(V2)); } catch(e) {} }
 
     function toast(msg){
@@ -1313,60 +1332,120 @@
       } catch(e) {}
     }
 
-    var ttsBlockedUntil = 0;   /* after a quota error, skip Gemini for a while so fallbacks start instantly */
+    var ttsBlock = {};   /* "model|key" -> time until which that combo is known to be out of quota */
+    var TTS_FALLBACK_MODELS = ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts', 'gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts'];
     function ttsKeys(){
       return [state.apiKey].concat(String(V2.extraKeys || '').split(/[\s,;]+/).filter(function(k){ return k.length > 20 && k !== state.apiKey; }));
+    }
+    var MODELS_CACHE_KEY = 'mgai_modelslist_v1';
+    async function discoverTtsModels(){
+      try {
+        var c = JSON.parse(localStorage.getItem(MODELS_CACHE_KEY) || 'null');
+        if (c && Date.now() - c.t < 86400000 && c.k === String(state.apiKey).slice(-8)) return c.tts || [];
+      } catch(e) {}
+      var tts_ = [], token = '';
+      try {
+        for (var page = 0; page < 5; page++) {
+          var res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200' + (token ? '&pageToken=' + encodeURIComponent(token) : ''), { headers:{ 'x-goog-api-key': state.apiKey } });
+          if (!res.ok) break;
+          var j = await res.json();
+          (j.models || []).forEach(function(m){
+            var n = String(m.name).replace(/^models\//, '');
+            if (/tts/i.test(n) && (m.supportedGenerationMethods || []).indexOf('generateContent') !== -1) tts_.push(n);
+          });
+          token = j.nextPageToken; if (!token) break;
+        }
+      } catch(e) {}
+      tts_.sort(function(a, b){ return b.localeCompare(a, 'en', { numeric:true }); });
+      if (tts_.length) { try { localStorage.setItem(MODELS_CACHE_KEY, JSON.stringify({ t:Date.now(), k:String(state.apiKey).slice(-8), tts:tts_ })); } catch(e) {} }
+      return tts_;
+    }
+    async function ttsModelOrder(){
+      var disc = await discoverTtsModels();
+      var out = [];
+      [V2.ttsModel].concat(TTS_FALLBACK_MODELS, disc).forEach(function(m){ m = String(m || '').trim(); if (m && out.indexOf(m) === -1) out.push(m); });
+      return out;
+    }
+    function quotaInfo(ej, msg){
+      var delay = 0, daily = false;
+      try {
+        ((ej && ej.error && ej.error.details) || []).forEach(function(d){
+          if (d.retryDelay) delay = parseFloat(d.retryDelay) * 1000;
+          (d.violations || []).forEach(function(v){ if (/PerDay/i.test((v.quotaId || '') + (v.quotaMetric || ''))) daily = true; });
+        });
+      } catch(e) {}
+      var m = /retry in ([\d.]+)s/i.exec(msg || ''); if (m) delay = parseFloat(m[1]) * 1000;
+      if (/per ?day|daily/i.test(msg || '')) daily = true;
+      return { delay:delay, daily:daily };
+    }
+    function friendlyTtsError(err){
+      if (err && err.status === 429) {
+        return 'حصة الصوت المجانية خلصت دلوقتي' + (err.waitSec ? ' (جرّب بعد ' + err.waitSec + ' ثانية)' : (err.daily ? ' (لحد بكرة)' : '')) + '. الأصوات والجمل اللي سمعتها قبل كده بتشتغل من غير حصة.';
+      }
+      return errShort(err);
     }
 
     async function geminiTtsAudio(text, signal, voice){
       voice = voice || V2.voice;
-      var ck = ttsCacheKey(voice, V2.ttsModel, text);
-      var hit = await ttsCacheGet(ck);
+      var hit = await ttsCacheGet(ttsCacheKey(voice, '', text));
+      if (!hit) hit = await ttsCacheGet(ttsCacheKey(voice, V2.ttsModel, text));
+      if (!hit) hit = await ttsCacheGet(ttsCacheKey(voice, 'gemini-2.5-flash-preview-tts', text));
       if (hit && hit.b64) return pcmToBuffer(hit.b64, hit.rate || 24000);
-      if (Date.now() < ttsBlockedUntil) { var be = new Error('HTTP 429 — حصة الصوت خلصت (هجرّب تاني بعد شوية)'); be.status = 429; throw be; }
-      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(V2.ttsModel) + ':generateContent';
-      var body = {
+      var models = await ttsModelOrder(), keys = ttsKeys();
+      var lastErr = null, minWait = Infinity, anyDaily = false;
+      var bodyBase = {
         contents: [{ parts: [{ text: ttsPrompt(text) }] }],
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } }
         }
       };
-      var keys = ttsKeys(), lastErr = null;
-      for (var ki = 0; ki < keys.length; ki++) {
-        for (var attempt = 0; attempt < 2; attempt++) {
-          try {
-            var res = await fetch(url, {
-              method:'POST',
-              headers:{ 'Content-Type':'application/json', 'x-goog-api-key': keys[ki] },
-              body: JSON.stringify(body),
-              signal: signal
-            });
-            if (!res.ok) {
-              var ej = null; try { ej = await res.json(); } catch(e) {}
-              var er = new Error('HTTP ' + res.status + ((ej && ej.error && ej.error.message) ? ' — ' + ej.error.message : ''));
-              er.status = res.status;
-              throw er;
+      for (var mi = 0; mi < models.length; mi++) {
+        for (var ki = 0; ki < keys.length; ki++) {
+          var bid = models[mi] + '|' + keys[ki].slice(-6);
+          if (ttsBlock[bid] > Date.now()) { minWait = Math.min(minWait, ttsBlock[bid] - Date.now()); continue; }
+          var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(models[mi]) + ':generateContent';
+          for (var attempt = 0; attempt < 2; attempt++) {
+            try {
+              var res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json', 'x-goog-api-key': keys[ki] }, body: JSON.stringify(bodyBase), signal: signal });
+              if (!res.ok) {
+                var ej = null; try { ej = await res.json(); } catch(e) {}
+                var detail = (ej && ej.error && ej.error.message) || '';
+                var er = new Error('HTTP ' + res.status + (detail ? ' — ' + detail : ''));
+                er.status = res.status; er.ej = ej;
+                throw er;
+              }
+              var j = await res.json();
+              var parts = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts;
+              var ap = null;
+              if (parts) for (var p = 0; p < parts.length; p++) { if (parts[p].inlineData && parts[p].inlineData.data) { ap = parts[p].inlineData; break; } }
+              if (!ap) throw new Error('الموديل رجّع رد من غير صوت');
+              var rm = /rate=(\d+)/.exec(ap.mimeType || '');
+              var rate = rm ? parseInt(rm[1], 10) : 24000;
+              ttsCachePut(ttsCacheKey(voice, '', text), { b64: ap.data, rate: rate, t: Date.now() });
+              if (models[mi] !== V2.ttsModel && !V2._warned) { V2._warned = true; toast('كمّلت بموديل الصوت ' + models[mi]); }
+              return pcmToBuffer(ap.data, rate);
+            } catch (err) {
+              if (err && err.name === 'AbortError') throw err;
+              lastErr = err;
+              if (err && err.status === 429) {
+                var qi = quotaInfo(err.ej, err.message);
+                var wait = qi.daily ? 3 * 3600000 : Math.min(Math.max(qi.delay, 20000) + 2000, 5 * 60000);
+                ttsBlock[bid] = Date.now() + wait; minWait = Math.min(minWait, wait); if (qi.daily) anyDaily = true;
+                break;
+              }
+              if (err && (err.status === 404 || err.status === 400)) { ttsBlock[bid] = Date.now() + 3600000; break; }   /* model not available on this key */
+              if (err && err.status && err.status < 500) throw err;
             }
-            var j = await res.json();
-            var parts = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts;
-            var ap = null;
-            if (parts) for (var p = 0; p < parts.length; p++) { if (parts[p].inlineData && parts[p].inlineData.data) { ap = parts[p].inlineData; break; } }
-            if (!ap) throw new Error('الموديل رجّع رد من غير صوت');
-            var rm = /rate=(\d+)/.exec(ap.mimeType || '');
-            var rate = rm ? parseInt(rm[1], 10) : 24000;
-            ttsCachePut(ck, { b64: ap.data, rate: rate, t: Date.now() });
-            return pcmToBuffer(ap.data, rate);
-          } catch (err) {
-            if (err && err.name === 'AbortError') throw err;
-            lastErr = err;
-            if (err && err.status === 429) break;                       /* next key */
-            if (err && err.status && err.status < 500) throw err;       /* real client error */
           }
         }
       }
-      if (lastErr && lastErr.status === 429) ttsBlockedUntil = Date.now() + 8 * 60000;
-      throw lastErr || new Error('TTS failed');
+      var fin = new Error('HTTP 429 — حصة الصوت خلصت على كل الموديلات المتاحة');
+      fin.status = (lastErr && lastErr.status === 429) || minWait !== Infinity ? 429 : ((lastErr && lastErr.status) || 0);
+      fin.waitSec = minWait !== Infinity && !anyDaily ? Math.ceil(minWait / 1000) : 0;
+      fin.daily = anyDaily;
+      if (fin.status !== 429 && lastErr) throw lastErr;
+      throw fin;
     }
 
     /* free fallback: Google's public translate voice (unofficial, no key, no quota, not Egyptian) */
@@ -1415,7 +1494,7 @@
 
     /* picks the best available engine for one chunk: Gemini -> Google -> (null = device voice) */
     async function ttsProvide(text, signal, voice){
-      var eng = V2.ttsEngine || 'auto';
+      var eng = (tts.opts && tts.opts.engine) || V2.ttsEngine || 'auto';
       if (eng === 'device') return null;
       var gemErr = null;
       if (eng === 'auto' || eng === 'gemini') {
@@ -1535,6 +1614,7 @@
       refreshSpeakButtonsUI();
       ttsStart({
         voice: opts.voice,
+        engine: opts.voice ? 'gemini' : null,
         onChunk: function(){ if (ttsLoadingId) { ttsLoadingId = null; refreshSpeakButtonsUI(); } },
         onEnd: function(){ currentSpeakingMessageId = null; ttsLoadingId = null; refreshSpeakButtonsUI(); if (opts.onEnd) opts.onEnd(); },
         onError: function(err){ if (opts.onError) opts.onError(err); }
@@ -1593,9 +1673,10 @@
       var n = inp.length, sum = 0, i;
       for (i = 0; i < n; i++) sum += inp[i] * inp[i];
       var rms = Math.sqrt(sum / n);
+      orbLevel(rms);
       var st = voiceMode.state;
       var frameMs = 1000 * n / e.inputBuffer.sampleRate;
-      var listening = st === 'listening' && !mic.muted && Date.now() > mic.echoUntil;
+      var listening = (st === 'listening' || st === 'standby') && !mic.muted && Date.now() > mic.echoUntil;
       var barge = st === 'speaking' && V2.bargeIn && !mic.muted;
       if (!listening && !barge) { if (mic.speaking || mic.pre.length) resetVad(); return; }
 
@@ -1615,14 +1696,15 @@
           mic.pre = [];
           mic.silMs = 0; mic.voicedMs = 0; mic.totalMs = 0;
           mic.sr = e.inputBuffer.sampleRate;
-          if (els.voiceStatusText) els.voiceStatusText.textContent = 'سامعك...';
+          if (els.voiceStatusText) els.voiceStatusText.textContent = (st === 'standby') ? 'بسمع...' : 'سامعك...';
         }
         return;
       }
       mic.utter.push(copy);
       mic.totalMs += frameMs;
       if (rms > thr * 0.75) { mic.silMs = 0; mic.voicedMs += frameMs; } else { mic.silMs += frameMs; }
-      if (mic.silMs >= END_SILENCE_MS || mic.totalMs >= MAX_UTTERANCE_MS) finishUtterance();
+      var sb = st === 'standby';
+      if (mic.silMs >= (sb ? 850 : END_SILENCE_MS) || mic.totalMs >= (sb ? 10000 : MAX_UTTERANCE_MS)) finishUtterance();
     }
 
     function downsampleTo16k(f32, srcRate){
@@ -1655,10 +1737,12 @@
     }
 
     /* ---------- Gemini speech-to-text ---------- */
-    var STT_PROMPT = 'فرّغ الكلام المسجّل ده حرفيًا وبدقة. المتكلم غالبًا بيتكلم بالعامية المصرية (اكتبها بالحروف العربية زي ما اتقالت من غير تفصيح) أو بالإنجليزي، وممكن يخلط الاتنين (اكتب الكلمات الإنجليزية بحروفها اللاتينية). متترجمش ومتجاوبش على الكلام ومتضيفش أي حاجة من عندك. اطبع النص بس. لو مفيش كلام بشري مفهوم (صمت أو ضوضاء أو صدى) اطبع بالظبط: [NONE]';
+    var STT_PROMPT = 'فرّغ الكلام المسجّل ده حرفيًا وبدقة. المتكلم مصري وبيتكلم غالبًا بالعامية المصرية (اكتبها بالحروف العربية زي ما اتقالت من غير تفصيح) أو بالإنجليزي، وممكن يخلط الاتنين (اكتب الكلمات الإنجليزية بحروفها اللاتينية). اسم المساعد "M-G" وبيتنطق "إم جي" (حرف M وحرف G): لو سمعته اكتبه بالظبط M-G. متترجمش ومتجاوبش على الكلام ومتضيفش أي حاجة من عندك. اطبع النص بس. لو مفيش كلام بشري مفهوم (صمت أو ضوضاء أو صدى) اطبع بالظبط: [NONE]';
 
     async function transcribeWav(b64, signal){
-      var combos = availableCombos(), lastErr = null;
+      var combos = availableCombos().slice(), lastErr = null;
+      var pref = String(V2.sttModel || '').trim();
+      combos.sort(function(a, b){ var sa = pref ? (a.model === pref ? 2 : 0) : 0, sb = pref ? (b.model === pref ? 2 : 0) : 0; return (sb + (/lite/.test(b.model) ? 1 : 0)) - (sa + (/lite/.test(a.model) ? 1 : 0)); });
       for (var i = 0; i < combos.length; i++) {
         try { return await transcribeWavOnce(b64, signal, combos[i].model, combos[i].key); }
         catch (err) {
@@ -1693,16 +1777,39 @@
       return out.trim();
     }
 
+    var lastSttToast = 0;
     function finishUtterance(){
       var frames = mic.utter, voiced = mic.voicedMs, sr = mic.sr;
+      var standby = voiceMode.state === 'standby';
       resetVad();
-      if (voiced < 300 || !frames.length) return;   /* just a noise burst */
-      setVoiceState('thinking', 'بفهم كلامك...');
+      if (voiced < (standby ? 380 : 300) || !frames.length) return;   /* just a noise burst */
+      if (standby) {
+        if (!standbyAllow()) return;
+        setVoiceState('standby', 'بتأكد إنك ندهتلي...', 'gray');
+        ensureLive().catch(function(){});   /* pre-connect while the name is being checked */
+      } else {
+        setVoiceState('thinking', 'بفهم كلامك...');
+      }
       var total = 0, i;
       for (i = 0; i < frames.length; i++) total += frames[i].length;
       var all = new Float32Array(total), off = 0;
       for (i = 0; i < frames.length; i++) { all.set(frames[i], off); off += frames[i].length; }
       var b64 = bytesToB64(encodeWav(downsampleTo16k(all, sr), 16000));
+      if (standby) {
+        var sctrl = new AbortController();
+        transcribeWav(b64, sctrl.signal).then(function(text){
+          if (!voiceMode.open || voiceMode.phase !== 'standby') return;
+          text = (text || '').replace(/^["“”]+|["“”]+$/g, '').trim();
+          if (!text || /\[NONE\]/i.test(text) || !hasWords(text)) { standbyIdleLabel(); return; }
+          onStandbyText(text);
+        }).catch(function(err){
+          if (err && err.name === 'AbortError') return;
+          if (!voiceMode.open || voiceMode.phase !== 'standby') return;
+          if (Date.now() - lastSttToast > 30000) { lastSttToast = Date.now(); toast('مش قادر أسمع النداء دلوقتي: ' + friendlyTtsError(err)); }
+          standbyIdleLabel();
+        });
+        return;
+      }
       var turn = ++voiceMode.turn;
       voiceMode.ctrl = new AbortController();
       transcribeWav(b64, voiceMode.ctrl.signal).then(function(text){
@@ -1718,21 +1825,26 @@
         setTimeout(function(){ if (turn === voiceMode.turn && voiceMode.open) startListening(); }, 2500);
       });
     }
+    function standbyIdleLabel(){
+      if (voiceMode.state === 'standby') setVoiceState('standby', mic.muted ? 'الميكروفون مكتوم' : 'مستنيك تنده «M-G»', 'gray');
+      if (live.ready) schedulePrewarmClose();
+    }
 
     /* ---------- live voice call ---------- */
     var VOICE_PROMPT = '\n\n[وضع المكالمة الصوتية المباشرة] كلامك دلوقتي هيتقري بصوت عالي، فاكتب زي ما بتتكلم: جمل طبيعية، من غير ماركداون ولا رموز ولا إيموجي ولا جداول ولا بلوكات كود (لو المطلوب كود قول إنك هتكتبه في الشات واشرح الفكرة بالكلام). ردّ بنفس لغة ولهجة المستخدم بالظبط: لو بيتكلم مصري ردّ بعامية مصرية طبيعية، ولو إنجليزي ردّ إنجليزي، ولو بيخلط الاتنين اخلط زيه. الكلمات التقنية الإنجليزية اكتبها بحروفها اللاتينية. خلّي الرد مفيد وفيه معلومة حقيقية، ومتوسط الطول (٣ لـ ٨ جمل) وطوّل أكتر لو السؤال محتاج شرح. لو السؤال بسيط جاوب مباشرة وبسرعة. اتكلم كإنسان ذكي وودود، مش كنشرة.';
 
-    function setVoiceState(next, label){
+    function setVoiceState(next, label, color){
       voiceMode.state = next;
-      if (els.voiceOrb) els.voiceOrb.className = 'voice-orb state-' + next;
+      var colors = { idle:'gray', standby:'gray', listening:'blue', thinking:'blue', speaking:'red' };
+      if (els.voiceOrb) els.voiceOrb.className = 'voice-orb state-' + next + ' c-' + (color || colors[next] || 'blue');
       var labels = {
         idle:'...',
+        standby: mic.muted ? 'الميكروفون مكتوم' : 'مستنيك تنده «M-G»',
         listening: mic.muted ? 'الميكروفون مكتوم — اضغط على 🔇 عشان تفتحه' : 'سامعك.. اتكلم براحتك',
         thinking:'بفكر في الرد...',
         speaking:'بيتكلم.. اضغط على الدايرة لو عايز تقاطعه'
       };
       if (els.voiceStatusText) els.voiceStatusText.textContent = label || labels[next] || '';
-      if (next === 'listening' && els.voiceTranscript && !label) { /* keep last words visible until you talk again */ }
       if (next === 'idle' && els.voiceTranscript) els.voiceTranscript.textContent = '';
     }
 
@@ -1826,11 +1938,11 @@
         },
         onEnd: function(){
           if (turn !== voiceMode.turn || !voiceMode.open) return;
-          setTimeout(function(){ if (turn === voiceMode.turn && voiceMode.open) startListening(); }, 250);
+          setTimeout(function(){ if (turn === voiceMode.turn && voiceMode.open) { if (V2.liveMode && V2.wakeMode) enterStandby(); else startListening(); } }, 250);
         },
         onError: function(err){
           if (turn !== voiceMode.turn) return;
-          toast('صوت Gemini مش شغال (' + errShort(err) + ') — بكمّل بصوت الجهاز.');
+          toast(friendlyTtsError(err) + ' — كمّلت بصوت بديل.');
         }
       });
       var attempts = 0;
@@ -1862,13 +1974,15 @@
       })();
     }
 
-    /* ================= Gemini Live: a real two-way voice call (like ChatGPT voice) ================= */
-    /* One WebSocket: your microphone streams up, the model's voice streams down, and the
-       server detects when you start/stop talking (so you can interrupt it). The words of both
-       sides are transcribed and saved into the chat, so nothing is lost. */
+    /* ================= M-G voice assistant: wake word + Gemini Live ================= */
+    /* Standby (gray): the mic only watches for the name "M-G". When you say it the app opens a Gemini
+       Live conversation: green = waiting for a command, light-blue = listening to you, red = M-G is
+       answering. When the conversation goes quiet it returns to gray and waits for the name again. */
     var LIVE_DEFAULT_MODELS = ['gemini-2.5-flash-native-audio-preview-09-2025', 'gemini-2.5-flash-native-audio-preview-12-2025', 'gemini-2.5-flash-native-audio-latest'];
     var LIVE_CACHE_KEY = 'mgai_livemodels_v1';
-    var live = { ws:null, ready:false, model:null, handle:null, nextT:0, sources:[], userBuf:'', aiBuf:'', turnDone:true, speaking:false, drop:false, q:Promise.resolve(), sendBuf:[], sendLen:0, closing:false, retries:0, noSearch:false };
+    var live = { ws:null, ready:false, connecting:null, model:null, handle:null, nextT:0, sources:[], userBuf:'', aiBuf:'', turnDone:true, speaking:false, drop:false,
+                 sendBuf:[], sendLen:0, closing:false, retries:0, noSearch:false, level:0, talk:false, loud:0, lastVoice:0, voicedMs:0, pre:[],
+                 replyTimer:null, idleTimer:null, prewarmTimer:null, awaitReply:false, cmdDone:false, endAfter:false, greeting:false };
 
     async function liveDiscoverModels(){
       try {
@@ -1896,18 +2010,35 @@
     }
     async function liveModelOrder(){
       var disc = await liveDiscoverModels();
-      var all = [V2.liveModel, V2.liveModelOk].concat(disc, LIVE_DEFAULT_MODELS);
       var out = [];
-      all.forEach(function(m){ m = String(m || '').trim(); if (m && out.indexOf(m) === -1) out.push(m); });
+      [V2.liveModel, V2.liveModelOk].concat(disc, LIVE_DEFAULT_MODELS).forEach(function(m){ m = String(m || '').trim(); if (m && out.indexOf(m) === -1) out.push(m); });
       return out;
     }
 
-    var LIVE_PROMPT = '\n\n[مكالمة صوتية مباشرة] إنت دلوقتي في مكالمة تليفون حية مع المستخدم، وكلامك بيتسمع بصوت عالي. اتكلم زي إنسان ذكي وودود: جمل طبيعية قصيرة ومتصلة، من غير ماركداون ولا رموز ولا قوايم ولا كود بصوت عالي (لو المطلوب كود قول إنك هتكتبه له في الشات واشرحه بالكلام). ردّ بنفس لغة ولهجة المستخدم بالظبط: لو بيتكلم مصري ردّ بعامية مصرية طبيعية (مش فصحى)، ولو إنجليزي ردّ إنجليزي، ولو بيخلط اتكلم بنفس الخلطة. المصطلحات التقنية الإنجليزية انطقها إنجليزي سليم. الرد مفيد وفيه معلومة حقيقية، ومتوسط الطول، وطوّل أكتر لو السؤال محتاج شرح. سيبه يقاطعك براحته.';
+    var LIVE_PROMPT = `
+
+[مكالمة صوتية مباشرة — إنت المساعد الصوتي "M-G" (بيتنطق إم جي)]
+إنت في مكالمة تليفون حية، وكلامك بيتسمع بصوت عالي. اتكلم زي صاحب ذكي وودود، بسرعة وبوضوح.
+
+قواعد الفهم (مهمة جدًا):
+- المستخدم مصري وبيتكلم غالبًا بالعامية المصرية، وأحيانًا بيخلط كلمات إنجليزي. افهمه على إنه مصري، ومتفترضش لغة تانية (مش فارسي ولا أردو ولا تركي ولا غيره) ومتحوّلش للفصحى.
+- ركّز في اللي بيقوله بالظبط. لو جزء مش واضح اختار أقرب معنى منطقي من سياق الكلام، ولو لسه مش متأكد اسأل سؤال قصير جدًا: "تقصد كذا؟".
+- لو سمعت ضوضاء أو صدى أو كلام مش موجّه ليك أو كلام مقطوع من غير معنى، اسكت ومتردش.
+- متنفّذش أي حاجة غير اللي اتطلبت.
+
+قواعد الكلام:
+- ردّ بنفس لغة ولهجة المستخدم (مصري بمصري، إنجليزي بإنجليزي، وخلطة بخلطة). المصطلحات التقنية الإنجليزية انطقها سليمة.
+- جمل طبيعية قصيرة ومتصلة، من غير ماركداون ولا رموز ولا قوايم ولا كود بصوت عالي. لو المطلوب كود قول إنك هتكتبه في الشات واشرحه بالكلام.
+- الرد مفيد وفيه معلومة حقيقية؛ قصير للسؤال البسيط وأطول لو محتاج شرح. سيبه يقاطعك براحته.
+
+الأوامر (استخدم الأدوات المتاحة):
+- منبه: set_alarm بالساعة والدقيقة بنظام 24 ساعة، واحسبها من الوقت الحالي اللي اتقالك. تايمر: set_timer بالثواني. بعد التنفيذ أكّد بجملة واحدة قصيرة.
+- لو قال "سلام" أو "خلاص كده" أو "شكرًا" وعايز ينهي المحادثة: قول وداع قصير واستخدم end_conversation.`;
 
     function buildLiveSystem(){
       var sys = (state.systemPrompt && state.systemPrompt.trim()) ? state.systemPrompt : '';
       var nowD = new Date();
-      sys += '\n\nمعلومة للسياق: التاريخ والوقت دلوقتي عند المستخدم: ' + nowD.toLocaleString('ar-EG', { dateStyle:'full', timeStyle:'short' }) + '.';
+      sys += '\n\nمعلومة للسياق: التاريخ والوقت دلوقتي عند المستخدم: ' + nowD.toLocaleString('ar-EG', { dateStyle:'full', timeStyle:'short' }) + ' (24 ساعة: ' + nowD.getHours() + ':' + ('0' + nowD.getMinutes()).slice(-2) + ').';
       sys += memoryBlock();
       sys += LIVE_PROMPT;
       var recent = (state.messages || []).filter(function(m){ return !m.error && m.content; }).slice(-8).map(function(m){
@@ -1917,22 +2048,34 @@
       return sys;
     }
 
+    function liveTools(withSearch){
+      var t = [{ functionDeclarations: [
+        { name:'set_alarm', description:'يضبط منبه في تطبيق الساعة على التليفون.', parameters:{ type:'OBJECT', properties:{ hour:{ type:'INTEGER', description:'الساعة بنظام 24 ساعة (0-23)' }, minute:{ type:'INTEGER', description:'الدقيقة (0-59)' }, label:{ type:'STRING', description:'اسم المنبه (اختياري)' } }, required:['hour','minute'] } },
+        { name:'set_timer', description:'يشغّل تايمر عدّ تنازلي.', parameters:{ type:'OBJECT', properties:{ seconds:{ type:'INTEGER', description:'المدة بالثواني' }, label:{ type:'STRING', description:'اسم التايمر (اختياري)' } }, required:['seconds'] } },
+        { name:'get_current_time', description:'بيرجّع التاريخ والوقت الحاليين على التليفون.', parameters:{ type:'OBJECT', properties:{} } },
+        { name:'end_conversation', description:'ينهي المحادثة الصوتية ويرجع لوضع الانتظار. استخدمها لما المستخدم يودّعك أو يقول خلاص.', parameters:{ type:'OBJECT', properties:{} } }
+      ] }];
+      if (withSearch) t.push({ googleSearch: {} });
+      return t;
+    }
+
     function buildLiveSetup(model, o){
       var setup = {
         model: 'models/' + model,
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: V2.voice } } }
-        },
+        generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: V2.voice } } } },
         systemInstruction: { parts: [{ text: buildLiveSystem() }] },
         inputAudioTranscription: {},
         outputAudioTranscription: {}
       };
       if (o.level === 0) {
-        setup.realtimeInputConfig = { automaticActivityDetection: { endOfSpeechSensitivity:'END_SENSITIVITY_LOW', silenceDurationMs:900 } };
+        setup.inputAudioTranscription = { languageCodes: ['ar-EG', 'en-US'], customVocabulary: ['M-G', 'إم جي', 'MG'] };
+        setup.realtimeInputConfig = { automaticActivityDetection: { endOfSpeechSensitivity:'END_SENSITIVITY_LOW', silenceDurationMs: Math.max(450, (V2.endMs || 800) - 200), prefixPaddingMs:120 }, turnCoverage:'TURN_INCLUDES_ONLY_ACTIVITY' };
+        setup.proactivity = { proactiveAudio: true };
         setup.contextWindowCompression = { slidingWindow: {} };
-        setup.sessionResumption = o.handle ? { handle: o.handle } : {};
-        if (o.search) setup.tools = [{ googleSearch: {} }];
+        setup.tools = liveTools(o.search);
+      } else if (o.level === 1) {
+        setup.realtimeInputConfig = { automaticActivityDetection: { endOfSpeechSensitivity:'END_SENSITIVITY_LOW', silenceDurationMs:700 } };
+        setup.tools = liveTools(false);
       }
       return setup;
     }
@@ -1971,23 +2114,21 @@
       });
     }
 
+    /* connects (or reuses) a Live session without touching the screen */
     async function startLive(){
       if (!state.apiKey) throw new Error('مفيش مفتاح');
       live.closing = false;
-      setVoiceState('thinking', 'بوصّل المكالمة...');
       var models = await liveModelOrder(), lastErr = null;
-      for (var i = 0; i < models.length && i < 5; i++) {
-        for (var level = 0; level < 2; level++) {
+      for (var i = 0; i < models.length && i < 4; i++) {
+        for (var level = 0; level < 3; level++) {
           if (!voiceMode.open) throw new Error('اتقفلت');
           var withSearch = !!(V2.search && !live.noSearch && level === 0);
           try {
             var ws = await liveOpen(models[i], { level:level, search:withSearch, handle: live.handle });
-            live.ws = ws; live.model = models[i]; live.ready = true; live.retries = 0;
+            live.ws = ws; live.model = models[i]; live.ready = true; live.retries = 0; live.level = level;
             V2.liveModelOk = models[i]; saveV2();
-            voiceMode.live = true;
+            live.sendBuf = []; live.sendLen = 0; live.talk = false; live.pre = [];
             liveResetPlayback();
-            mic.echoUntil = Date.now() + 300;
-            setVoiceState('listening', 'المكالمة شغالة — اتكلم براحتك');
             return true;
           } catch (e) {
             lastErr = e;
@@ -1999,12 +2140,47 @@
       live.handle = null;
       throw lastErr || new Error('مفيش موديل لايف متاح');
     }
+    function ensureLive(){
+      if (live.ready && live.ws && live.ws.readyState === 1) return Promise.resolve(true);
+      if (live.connecting) return live.connecting;
+      live.connecting = startLive().then(function(r){ live.connecting = null; return r; }, function(e){ live.connecting = null; throw e; });
+      return live.connecting;
+    }
+    function livePrewarmClose(){
+      clearTimeout(live.prewarmTimer);
+      var ws = live.ws; live.ws = null; live.ready = false;
+      if (ws) { try { ws.close(); } catch(e) {} }
+    }
+    function schedulePrewarmClose(){
+      clearTimeout(live.prewarmTimer);
+      live.prewarmTimer = setTimeout(function(){ if (!voiceMode.live) livePrewarmClose(); }, 90000);
+    }
 
     function liveResetPlayback(){
       live.sources.forEach(function(s){ try { s.onended = null; s.stop(); } catch(e) {} });
       live.sources = []; live.nextT = 0; live.speaking = false;
     }
     function liveStopPlayback(){ liveResetPlayback(); }
+
+    function earcon(kind){
+      try {
+        var ctx = getAudioCtx(); if (!ctx) return;
+        var seq = kind === 'wake' ? [[660, 0.09], [990, 0.13]] : (kind === 'end' ? [[700, 0.09], [440, 0.16]] : [[560, 0.09]]);
+        var t = ctx.currentTime + 0.01;
+        seq.forEach(function(n){
+          var o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = 'sine'; o.frequency.value = n[0];
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.2, t + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + n[1]);
+          o.connect(g); g.connect(ctx.destination);
+          o.start(t); o.stop(t + n[1] + 0.02);
+          t += n[1];
+        });
+        mic.echoUntil = Date.now() + 450;
+        if (kind === 'wake' && navigator.vibrate) navigator.vibrate(35);
+      } catch(e) {}
+    }
 
     function liveEnqueueAudio(b64, rate){
       if (live.drop) return;
@@ -2020,17 +2196,46 @@
         var i = live.sources.indexOf(s); if (i !== -1) live.sources.splice(i, 1);
         if (!live.sources.length) livePlaybackEnded();
       };
-      if (!live.speaking) { live.speaking = true; if (voiceMode.open && voiceMode.live) setVoiceState('speaking'); }
+      if (!live.speaking) {
+        live.speaking = true;
+        clearTimeout(live.idleTimer); clearTimeout(live.replyTimer); live.awaitReply = false;
+        if (voiceMode.open && voiceMode.live) {
+          if (live.greeting) setVoiceState('speaking', 'نعم؟ ندهتلي..', 'green');
+          else setVoiceState('speaking', 'M-G بيرد عليك', 'red');
+        }
+      }
     }
     function livePlaybackEnded(){
       live.speaking = false;
       mic.echoUntil = Date.now() + 600;
-      if (live.turnDone && voiceMode.open && voiceMode.live) setVoiceState('listening', 'سامعك.. اتكلم');
+      if (voiceMode.live && live.turnDone) liveAfterModelTurn();
     }
+
+    /* what happens when M-G finished talking */
+    function liveAfterModelTurn(){
+      if (!voiceMode.open || !voiceMode.live) return;
+      if (live.endAfter) { closeDialogue('bye'); return; }
+      if (live.cmdDone) { closeDialogue('done'); return; }
+      if (live.greeting) {
+        live.greeting = false; voiceMode.phase = 'cmd';
+        setVoiceState('listening', 'قول أمرك.. أنا سامعك', 'green');
+        armIdle(V2.cmdIdleSec || 10);
+        return;
+      }
+      voiceMode.phase = 'chat';
+      setVoiceState('listening', 'سامعك.. كمّل كلامك', 'blue');
+      armIdle(V2.idleSec || 12);
+    }
+    function armIdle(sec){
+      clearTimeout(live.idleTimer);
+      live.idleTimer = setTimeout(function(){ if (voiceMode.live && !live.speaking && !live.talk && !live.awaitReply) closeDialogue('timeout'); }, sec * 1000);
+    }
+    function liveClearTimers(){ clearTimeout(live.idleTimer); clearTimeout(live.replyTimer); clearTimeout(live.prewarmTimer); }
 
     function liveFlushTurn(){
       var u = live.userBuf.trim(), a = splitMemory(live.aiBuf).clean.trim();
       live.userBuf = ''; live.aiBuf = '';
+      if (live.skipNextAi && !u) { live.skipNextAi = false; return; }   /* don't log the "نعم؟" greeting */
       if (!u && !a) return;
       try {
         hideEmptyState();
@@ -2040,17 +2245,63 @@
       } catch(e) { console.error(e); }
     }
 
+    function liveSend(obj){ try { if (live.ws && live.ws.readyState === 1) { live.ws.send(JSON.stringify(obj)); return true; } } catch(e) {} return false; }
+    function liveSendText(t){ return liveSend({ realtimeInput:{ text: t } }); }
+
+    /* ---- tools the model can call ---- */
+    function assistantPlugin(){ var P = window.Capacitor && window.Capacitor.Plugins; return P && P.Assistant ? P.Assistant : null; }
+    async function runLiveTool(fc){
+      var out = { id: fc.id, name: fc.name, response: {} };
+      var a = fc.args || {};
+      try {
+        if (fc.name === 'set_alarm') {
+          var P = assistantPlugin();
+          if (!P) throw new Error('التطبيق محتاج تحديث عشان يضبط المنبه (النسخة دي من غير الإضافة)');
+          var h = parseInt(a.hour, 10), mi = parseInt(a.minute, 10);
+          if (isNaN(h) || isNaN(mi) || h < 0 || h > 23 || mi < 0 || mi > 59) throw new Error('وقت غير صالح');
+          await P.setAlarm({ hour:h, minute:mi, label: String(a.label || 'MG.ai') });
+          live.cmdDone = true;
+          toast('⏰ ضبطت المنبه ' + ('0' + h).slice(-2) + ':' + ('0' + mi).slice(-2));
+          out.response = { result:{ ok:true, hour:h, minute:mi } };
+        } else if (fc.name === 'set_timer') {
+          var P2 = assistantPlugin();
+          if (!P2) throw new Error('التطبيق محتاج تحديث عشان يشغّل التايمر (النسخة دي من غير الإضافة)');
+          var sec = parseInt(a.seconds, 10);
+          if (isNaN(sec) || sec < 1 || sec > 86400) throw new Error('مدة غير صالحة');
+          await P2.setTimer({ seconds:sec, label: String(a.label || 'MG.ai') });
+          live.cmdDone = true;
+          toast('⏱ شغّلت تايمر ' + sec + ' ثانية');
+          out.response = { result:{ ok:true, seconds:sec } };
+        } else if (fc.name === 'get_current_time') {
+          var d = new Date();
+          out.response = { result:{ iso:d.toISOString(), local:d.toLocaleString('ar-EG', { dateStyle:'full', timeStyle:'medium' }), hour24:d.getHours(), minute:d.getMinutes() } };
+        } else if (fc.name === 'end_conversation') {
+          live.endAfter = true;
+          out.response = { result:{ ok:true } };
+        } else {
+          out.response = { error:'أداة غير معروفة' };
+        }
+      } catch (e) {
+        out.response = { error: String((e && e.message) || e) };
+        toast('⚠️ ' + out.response.error);
+      }
+      return out;
+    }
+
     function liveHandle(m){
       if (m.sessionResumptionUpdate && m.sessionResumptionUpdate.newHandle) live.handle = m.sessionResumptionUpdate.newHandle;
-      if (m.goAway) { toast('السيرفر هيجدّد الاتصال بعد لحظات...'); }
+      if (m.toolCall && m.toolCall.functionCalls) {
+        Promise.all(m.toolCall.functionCalls.map(runLiveTool)).then(function(resps){ liveSend({ toolResponse:{ functionResponses: resps } }); });
+        return;
+      }
+      if (!voiceMode.live) return;   /* idle pre-warmed session: ignore */
       var sc = m.serverContent;
       if (!sc) return;
-      if (sc.interrupted) { live.drop = false; liveStopPlayback(); liveFlushTurn(); live.turnDone = true; if (voiceMode.open) setVoiceState('listening'); return; }
+      if (sc.interrupted) { live.drop = false; liveStopPlayback(); liveFlushTurn(); live.turnDone = true; if (voiceMode.open) { setVoiceState('listening', 'سامعك...', 'blue'); } return; }
       if (sc.inputTranscription && sc.inputTranscription.text) {
-        if (live.turnDone) { live.turnDone = false; }
+        live.turnDone = false;
         live.userBuf += sc.inputTranscription.text;
         if (els.voiceTranscript && !live.speaking) els.voiceTranscript.textContent = live.userBuf.trim();
-        if (voiceMode.state === 'listening' && els.voiceStatusText) els.voiceStatusText.textContent = 'سامعك...';
       }
       if (sc.modelTurn && sc.modelTurn.parts) {
         live.turnDone = false;
@@ -2067,42 +2318,91 @@
       }
       if (sc.generationComplete) live.drop = false;
       if (sc.turnComplete) {
-        live.drop = false;
-        live.turnDone = true;
+        live.drop = false; live.turnDone = true;
+        clearTimeout(live.replyTimer); live.awaitReply = false;
         liveFlushTurn();
-        if (!live.sources.length) { live.speaking = false; if (voiceMode.open) setVoiceState('listening', 'سامعك.. اتكلم'); }
+        if (!live.sources.length) { live.speaking = false; liveAfterModelTurn(); }
       }
     }
 
-    function liveSendMic(inp, sr){
-      if (!live.ready || !live.ws || live.ws.readyState !== 1 || mic.muted) return;
-      if ((live.speaking || Date.now() < mic.echoUntil) && !V2.bargeIn) return;   /* half-duplex unless you enabled barge-in */
-      var d = downsampleTo16k(inp, sr), pcm = new Int16Array(d.length);
+    /* ---- microphone -> Live (only real speech is sent, never silence/noise) ---- */
+    function orbLevel(rms){
+      var lv = Math.min(1, rms * 9);
+      if (Math.abs(lv - (voiceMode._lv || 0)) > 0.05 && els.voiceOrb) { voiceMode._lv = lv; els.voiceOrb.style.setProperty('--lvl', lv.toFixed(2)); }
+    }
+    function liveSendFrame(f, sr){
+      var d = downsampleTo16k(f, sr), pcm = new Int16Array(d.length);
       for (var i = 0; i < d.length; i++) { var x = Math.max(-1, Math.min(1, d[i])); pcm[i] = x < 0 ? x * 0x8000 : x * 0x7FFF; }
       live.sendBuf.push(pcm); live.sendLen += pcm.length;
-      if (live.sendLen >= 1600) {
-        var all = new Int16Array(live.sendLen), off = 0;
-        live.sendBuf.forEach(function(a){ all.set(a, off); off += a.length; });
-        live.sendBuf = []; live.sendLen = 0;
-        try { live.ws.send(JSON.stringify({ realtimeInput:{ audio:{ data: bytesToB64(new Uint8Array(all.buffer)), mimeType:'audio/pcm;rate=16000' } } })); } catch(e) {}
+      if (live.sendLen >= 1600) liveFlushSend();
+    }
+    function liveFlushSend(){
+      if (!live.sendLen) return;
+      var all = new Int16Array(live.sendLen), off = 0;
+      live.sendBuf.forEach(function(a){ all.set(a, off); off += a.length; });
+      live.sendBuf = []; live.sendLen = 0;
+      liveSend({ realtimeInput:{ audio:{ data: bytesToB64(new Uint8Array(all.buffer)), mimeType:'audio/pcm;rate=16000' } } });
+    }
+    function liveUserStart(){
+      clearTimeout(live.idleTimer); clearTimeout(live.replyTimer);
+      if (voiceMode.phase === 'cmd' || live.greeting) setVoiceState('listening', 'سامعك.. قول أمرك', 'green');
+      else setVoiceState('listening', 'سامعك...', 'blue');
+    }
+    function liveUserEnd(){
+      live.awaitReply = true;
+      setVoiceState('thinking', 'بفهمك وبفكر...', 'blue');
+      liveSend({ realtimeInput:{ audioStreamEnd:true } });
+      live.replyTimer = setTimeout(function(){
+        if (!live.awaitReply || !voiceMode.live) return;
+        live.awaitReply = false;
+        setVoiceState('listening', 'مسمعتش رد.. جرّب تاني', 'blue');
+        armIdle(V2.idleSec || 12);
+      }, 12000);
+    }
+    function liveSendMic(inp, sr){
+      var n = inp.length, sum = 0, i;
+      for (i = 0; i < n; i++) sum += inp[i] * inp[i];
+      var rms = Math.sqrt(sum / n);
+      orbLevel(rms);
+      if (!live.ready || !live.ws || live.ws.readyState !== 1 || mic.muted) { live.talk = false; live.loud = 0; return; }
+      var blocked = (live.speaking || Date.now() < mic.echoUntil) && !V2.bargeIn;
+      var thr = Math.max(0.014, mic.floor * 3.2);
+      if (V2.bargeIn && live.speaking) thr = Math.max(0.045, mic.floor * 7);
+      var isLoud = rms > thr, copy = new Float32Array(inp);
+      if (!live.talk) {
+        if (!isLoud && !blocked) mic.floor = Math.min(0.05, Math.max(0.002, mic.floor * 0.96 + rms * 0.04));
+        live.pre.push(copy); if (live.pre.length > 9) live.pre.shift();
+        live.loud = (isLoud && !blocked) ? live.loud + 1 : 0;
+        if (live.loud >= 3) {
+          live.talk = true; live.lastVoice = Date.now(); live.loud = 0;
+          live.pre.forEach(function(f){ liveSendFrame(f, sr); });
+          live.pre = [];
+          liveUserStart();
+        }
+        return;
       }
+      liveSendFrame(copy, sr);
+      if (isLoud) live.lastVoice = Date.now();
+      if (Date.now() - live.lastVoice >= (V2.endMs || 800)) { live.talk = false; liveFlushSend(); liveUserEnd(); }
     }
 
     function liveInterrupt(){
       live.drop = true;
       liveStopPlayback();
       mic.echoUntil = 0;
-      if (voiceMode.open) setVoiceState('listening', 'سامعك.. اتكلم');
+      if (voiceMode.open) { setVoiceState('listening', 'سامعك.. اتكلم', 'blue'); armIdle(V2.idleSec || 12); }
     }
 
     function liveOnClose(ev){
       live.ready = false;
       if (live.closing || !voiceMode.open || voiceMode.paused) return;
+      if (!voiceMode.live) return;   /* a pre-warmed idle session closed: reconnect on demand */
       liveFlushTurn();
+      if (V2.wakeMode) { toast('الاتصال اتقطع — رجعت لوضع الانتظار.'); closeDialogue('lost'); return; }
       if (live.retries < 2) {
         live.retries++;
-        setVoiceState('thinking', 'الاتصال اتقطع.. برجّعه');
-        startLive().catch(function(err){ liveGiveUp(err); });
+        setVoiceState('thinking', 'الاتصال اتقطع.. برجّعه', 'blue');
+        ensureLive().then(function(){ liveResetPlayback(); setVoiceState('listening', 'سامعك.. اتكلم', 'blue'); }).catch(function(err){ liveGiveUp(err); });
       } else {
         liveGiveUp(new Error('closed ' + (ev && ev.code) + (ev && ev.reason ? ' — ' + ev.reason : '')));
       }
@@ -2115,18 +2415,141 @@
     }
     function liveClose(){
       live.closing = true; live.ready = false;
+      liveClearTimers();
       var ws = live.ws; live.ws = null;
       if (ws) { try { ws.close(); } catch(e) {} }
       liveStopPlayback();
       liveFlushTurn();
-      live.sendBuf = []; live.sendLen = 0; live.turnDone = true;
+      live.sendBuf = []; live.sendLen = 0; live.turnDone = true; live.talk = false; live.loud = 0; live.pre = [];
+      live.awaitReply = false; live.greeting = false; live.cmdDone = false; live.endAfter = false;
+      voiceMode.live = false; voiceMode.phase = 'idle';
+    }
+
+    /* ---- wake word ---- */
+    function normAr(t){
+      return String(t || '').replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
+    }
+    var WAKE_RES = [
+      /(^|[^a-z0-9])m\s*[-._\u2010-\u2015]?\s*g(?![a-z0-9])/i,
+      /(^|[^a-z0-9])(em|am)\s*[-._]?\s*(g|gee|jee|ji|jay|j)(?![a-z0-9])/i,
+      /(^|[^\u0600-\u06FFa-z0-9])(ايم|ام|ايمم)\s*[-._]?\s*(جي|جيه|جيي|چي|جاي)(?![\u0600-\u06FFa-z0-9])/
+    ];
+    function detectWake(text){
+      var t = normAr(text), best = null;
+      WAKE_RES.forEach(function(re){
+        var m = re.exec(t);
+        if (m && (!best || m.index < best.index)) best = { index:m.index + (m[1] ? m[1].length : 0), len:m[0].length - (m[1] ? m[1].length : 0) };
+      });
+      if (!best) return { found:false, rest:'' };
+      var before = t.slice(0, best.index), after = t.slice(best.index + best.len);
+      var rest = (after.replace(/^[\s,.!?،؟:;-]+/, '') + ' ' + before).trim();
+      /* use the original (non-normalised) text for the content we pass on */
+      var orig = String(text || '');
+      var restOrig = (orig.slice(best.index + best.len) + ' ' + orig.slice(0, best.index)).replace(/^[\s,.!?،؟:;-]+/, '').trim();
+      return { found:true, rest: restOrig || rest };
+    }
+    var WAKE_FILLERS = ['يا','ايه','اه','ايوه','ايوا','نعم','لو','سمحت','ممكن','الو','هاي','هلو','يلا','سامعني','فينك','تعالي','تعال','hey','hi','hello','ok','okay','please','باشا','بيه','يسطا','صاحبي','صديقي','انت','انتا','معايا','موجود'];
+    function isFillerOnly(rest){
+      var words = normAr(rest).toLowerCase().replace(/[^\u0600-\u06FFa-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+      if (!words.length) return true;
+      if (words.length > 4) return false;
+      return words.every(function(w){ return WAKE_FILLERS.indexOf(w) !== -1; });
+    }
+
+    var standbySttLog = [];
+    function standbyAllow(){
+      var now = Date.now();
+      standbySttLog = standbySttLog.filter(function(t){ return now - t < 60000; });
+      if (standbySttLog.length >= 10) return false;
+      standbySttLog.push(now);
+      return true;
+    }
+
+    function enterStandby(){
+      liveClearTimers();
+      voiceMode.live = false; voiceMode.phase = 'standby';
+      resetVad();
+      mic.echoUntil = Date.now() + 300;
+      setVoiceState('standby', mic.muted ? 'الميكروفون مكتوم' : 'مستنيك تنده «M-G»', 'gray');
+      if (els.voiceTranscript) els.voiceTranscript.textContent = '';
+      if (live.ready) schedulePrewarmClose();
+    }
+
+    function onStandbyText(text){
+      var w = detectWake(text);
+      if (!w.found) { standbyIdleLabel(); return; }
+      earcon('wake');
+      var rem = String(w.rest || '').trim();
+      if (els.voiceTranscript) els.voiceTranscript.textContent = text;
+      if (isFillerOnly(rem)) openDialogue({ mode:'cmd' });
+      else openDialogue({ mode:'chat', opening:rem });
+    }
+
+    async function openDialogue(o){
+      if (voiceMode.phase !== 'standby') return;
+      voiceMode.phase = 'connecting';
+      voiceMode.turn++;
+      var turn = voiceMode.turn;
+      resetVad();
+      setVoiceState('thinking', o.mode === 'cmd' ? 'نعم.. ثواني' : 'ثواني..', o.mode === 'cmd' ? 'green' : 'blue');
+      try { await ensureLive(); }
+      catch (err) {
+        console.error('live connect failed', err);
+        if (!voiceMode.open) return;
+        toast('مقدرتش أفتح المكالمة اللايف (' + errShort(err) + ')');
+        if (o.opening) { voiceMode.phase = 'idle'; voiceMode.live = false; sendVoiceMessage(o.opening); }
+        else enterStandby();
+        return;
+      }
+      if (!voiceMode.open || turn !== voiceMode.turn) return;
+      clearTimeout(live.prewarmTimer);
+      voiceMode.live = true; voiceMode.phase = o.mode;
+      live.cmdDone = false; live.endAfter = false; live.turnDone = true; live.userBuf = ''; live.aiBuf = ''; live.talk = false; live.loud = 0; live.pre = [];
+      liveResetPlayback();
+      if (o.mode === 'cmd') {
+        live.greeting = true; live.skipNextAi = true;
+        setVoiceState('thinking', 'نعم؟ ندهتلي..', 'green');
+        liveSendText('المستخدم نادى عليك باسمك "M-G" من غير ما يقول أي طلب. ردّ بجملة واحدة قصيرة جدًا بالمصري: "نعم؟ ندهتلي.. أقدر أساعدك بإيه؟" وبعدين اسكت واستنى كلامه.');
+      } else if (o.opening) {
+        live.greeting = false;
+        live.userBuf = o.opening + ' ';
+        setVoiceState('thinking', 'بفكر...', 'blue');
+        liveSendText(o.opening);
+        live.awaitReply = true;
+        live.replyTimer = setTimeout(function(){ if (live.awaitReply && voiceMode.live) { live.awaitReply = false; closeDialogue('timeout'); toast('مفيش رد جه من السيرفر.'); } }, 15000);
+      } else {
+        live.greeting = false; voiceMode.phase = 'chat';
+        setVoiceState('listening', 'سامعك.. اتكلم', 'blue');
+        armIdle(V2.idleSec || 12);
+      }
+    }
+
+    function closeDialogue(reason){
+      liveClearTimers();
+      liveFlushTurn();
+      liveStopPlayback();
+      live.talk = false; live.loud = 0; live.sendBuf = []; live.sendLen = 0; live.awaitReply = false; live.greeting = false; live.cmdDone = false; live.endAfter = false;
       voiceMode.live = false;
+      if (reason !== 'silent') earcon('end');
+      if (V2.wakeMode && voiceMode.open) enterStandby();
+      else if (voiceMode.open) startListening();
     }
 
     async function beginVoice(){
       if (V2.liveMode) {
-        try { await startLive(); return; }
-        catch (err) {
+        if (V2.wakeMode) {
+          enterStandby();
+          ensureLive().then(function(){ if (voiceMode.phase === 'standby') schedulePrewarmClose(); }).catch(function(){});
+          return;
+        }
+        try {
+          setVoiceState('thinking', 'بوصّل المكالمة...', 'blue');
+          await ensureLive();
+          if (!voiceMode.open) return;
+          voiceMode.live = true; voiceMode.phase = 'chat';
+          setVoiceState('listening', 'المكالمة شغالة — اتكلم براحتك', 'blue');
+          return;
+        } catch (err) {
           console.error('live failed', err);
           if (!voiceMode.open) return;
           toast('المكالمة اللايف مش شغالة دلوقتي (' + errShort(err) + ') — هشغّل الوضع العادي.');
@@ -3891,6 +4314,7 @@
     });
     els.voiceOrb.addEventListener('click', function(){
       var st = voiceMode.state;
+      if (st === 'standby') { openDialogue({ mode:'chat' }); return; }   /* tap = wake him manually */
       if (voiceMode.live) { if (st === 'speaking') liveInterrupt(); return; }
       if (st === 'listening' && mic.speaking) finishUtterance();
       else if (st === 'speaking' || st === 'thinking') voiceInterrupt();
@@ -3899,7 +4323,8 @@
       mic.muted = !mic.muted;
       resetVad();
       refreshMuteBtn();
-      if (voiceMode.state === 'listening') setVoiceState('listening');
+      if (voiceMode.state === 'standby') enterStandby();
+      else if (voiceMode.state === 'listening' && !voiceMode.live) setVoiceState('listening');
     });
     function renderGeminiVoiceList(){
       var box = document.getElementById('geminiVoiceList'); if (!box) return;
@@ -3919,7 +4344,7 @@
           ev.stopPropagation();
           if (!state.apiKey) { toast('ضيف مفتاح Gemini الأول.'); return; }
           toast('بجهّز عيّنة ' + v[0] + '...');
-          speakText('أهلاً بيك يا باشا! أنا صوت ' + v[0] + '، وبقدر أتكلم مصري، وكمان English naturally.', { voice: v[0], onError: function(err){ toast('العيّنة فشلت: ' + errShort(err)); } });
+          speakText('أهلاً بيك يا باشا! أنا صوت ' + v[0] + '، وبقدر أتكلم مصري، وكمان English naturally.', { voice: v[0], onError: function(err){ toast(friendlyTtsError(err)); } });
         });
         box.appendChild(row);
       });
@@ -3929,6 +4354,9 @@
       g('ttsEngineInput').value = V2.ttsEngine || 'auto';
       g('liveModeInput').checked = V2.liveMode !== false;
       g('liveModelInput').value = V2.liveModel || '';
+      g('wakeModeInput').checked = V2.wakeMode !== false;
+      g('idleSecInput').value = String(V2.idleSec || 12);
+      g('endMsInput').value = String(V2.endMs || 800);
       g('ttsModelInput').value = V2.ttsModel;
       g('bargeInInput').checked = !!V2.bargeIn;
       g('thinkingInput').value = V2.thinking;
@@ -3938,15 +4366,18 @@
         V2.ttsEngine = g('ttsEngineInput').value;
         V2.liveMode = g('liveModeInput').checked;
         V2.liveModel = g('liveModelInput').value.trim();
-        V2.ttsModel = g('ttsModelInput').value.trim() || 'gemini-2.5-flash-preview-tts';
+        V2.wakeMode = g('wakeModeInput').checked;
+        V2.idleSec = parseInt(g('idleSecInput').value, 10) || 12;
+        V2.endMs = parseInt(g('endMsInput').value, 10) || 800;
+        V2.ttsModel = g('ttsModelInput').value.trim() || 'gemini-3.8-flash-tts';
         V2.bargeIn = g('bargeInInput').checked;
         V2.thinking = g('thinkingInput').value;
         V2.search = g('searchInput').checked;
         V2.extraKeys = g('extraKeysInput').value;
-        ttsBlockedUntil = 0;
+        ttsBlock = {};
         saveV2();
       }
-      ['ttsEngineInput','liveModeInput','liveModelInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
+      ['ttsEngineInput','liveModeInput','liveModelInput','wakeModeInput','idleSecInput','endMsInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
       renderGeminiVoiceList();
     })();
 
