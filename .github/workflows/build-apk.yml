@@ -65,7 +65,88 @@ jobs:
           done
           grep -q "READ_EXTERNAL_STORAGE" "$M" || sed -i "s#</manifest>#    <uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\" android:maxSdkVersion=\"32\" />\n</manifest>#" "$M"
           grep -q "android.hardware.camera\"" "$M" || sed -i "s#</manifest>#    <uses-feature android:name=\"android.hardware.camera\" android:required=\"false\" />\n</manifest>#" "$M"
+          grep -q "com.android.alarm.permission.SET_ALARM" "$M" || sed -i "s#</manifest>#    <uses-permission android:name=\"com.android.alarm.permission.SET_ALARM\" />\n</manifest>#" "$M"
           grep -n "uses-permission\|uses-feature" "$M"
+
+      - name: Add native assistant plugin (alarm and timer)
+        run: |
+          D=android/app/src/main/java/com/mg/ai/app
+          mkdir -p "$D"
+          cat > "$D/AssistantPlugin.java" <<'JAVA_EOF'
+          package com.mg.ai.app;
+
+          import android.content.Intent;
+          import android.provider.AlarmClock;
+
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          @CapacitorPlugin(name = "Assistant")
+          public class AssistantPlugin extends Plugin {
+
+              @PluginMethod
+              public void setAlarm(PluginCall call) {
+                  Integer hour = call.getInt("hour");
+                  Integer minute = call.getInt("minute");
+                  if (hour == null || minute == null) {
+                      call.reject("hour and minute are required");
+                      return;
+                  }
+                  String label = call.getString("label", "MG.ai");
+                  Intent intent = new Intent(AlarmClock.ACTION_SET_ALARM);
+                  intent.putExtra(AlarmClock.EXTRA_HOUR, hour.intValue());
+                  intent.putExtra(AlarmClock.EXTRA_MINUTES, minute.intValue());
+                  intent.putExtra(AlarmClock.EXTRA_MESSAGE, label);
+                  intent.putExtra(AlarmClock.EXTRA_SKIP_UI, true);
+                  intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                  try {
+                      getContext().startActivity(intent);
+                      call.resolve();
+                  } catch (Exception e) {
+                      call.reject(String.valueOf(e.getMessage()));
+                  }
+              }
+
+              @PluginMethod
+              public void setTimer(PluginCall call) {
+                  Integer seconds = call.getInt("seconds");
+                  if (seconds == null) {
+                      call.reject("seconds is required");
+                      return;
+                  }
+                  String label = call.getString("label", "MG.ai");
+                  Intent intent = new Intent(AlarmClock.ACTION_SET_TIMER);
+                  intent.putExtra(AlarmClock.EXTRA_LENGTH, seconds.intValue());
+                  intent.putExtra(AlarmClock.EXTRA_MESSAGE, label);
+                  intent.putExtra(AlarmClock.EXTRA_SKIP_UI, true);
+                  intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                  try {
+                      getContext().startActivity(intent);
+                      call.resolve();
+                  } catch (Exception e) {
+                      call.reject(String.valueOf(e.getMessage()));
+                  }
+              }
+          }
+          JAVA_EOF
+          cat > "$D/MainActivity.java" <<'JAVA_EOF'
+          package com.mg.ai.app;
+
+          import android.os.Bundle;
+
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  registerPlugin(AssistantPlugin.class);
+                  super.onCreate(savedInstanceState);
+              }
+          }
+          JAVA_EOF
+          ls -la "$D"
 
       - name: Set versionCode / versionName
         run: |
