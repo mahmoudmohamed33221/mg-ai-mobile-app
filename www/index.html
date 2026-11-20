@@ -663,9 +663,21 @@
       <label for="idleSecInput" style="margin-top:8px;">يرجع للانتظار بعد صمت</label>
       <select id="idleSecInput"><option value="8">٨ ثواني</option><option value="12">١٢ ثانية</option><option value="20">٢٠ ثانية</option><option value="30">٣٠ ثانية</option></select>
       <label for="endMsInput" style="margin-top:8px;">سرعة الرد بعد ما تسكت</label>
-      <select id="endMsInput"><option value="600">سريع جدًا (ممكن يقاطعك لو بتتمهل)</option><option value="800">متوازن</option><option value="1200">صبور (يستنى لو بتفكر)</option></select>
-      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="bargeInInput"><span>قاطعه بصوتك وهو بيتكلم (اقفلها لو من غير سماعة وبيسمع نفسه — وقتها اضغط على الدايرة عشان تقاطعه)</span></label>
+      <select id="endMsInput"><option value="700">سريع (ممكن يقاطعك لو بتتمهل)</option><option value="900">متوازن</option><option value="1300">صبور (يستنى لو بتفكر)</option></select>
+      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="bargeInInput"><span>اسمح بمقاطعته بأي كلام وهو بيتكلم (مش مُوصى بيها). وهي مقفولة، مفيش حاجة بتقطعه غير كلمة «استنى» أو الضغط على الدايرة الحمرا</span></label>
       <div class="hint">اللايف بيشتغل بمفتاح Gemini نفسه وله حصة لوحده غير حصة الشات والقراءة. كلام المكالمة بيتسجّل في الشات.</div>
+    </div>
+
+    <div class="field">
+      <label>🎯 التركيز على صوتي</label>
+      <div class="hint" id="vpInfo" style="margin:0 0 8px;"></div>
+      <button type="button" class="text-btn" id="vpEnrollBtn" style="width:100%;padding:10px;">🎤 درّب التطبيق على صوتي (نص دقيقة)</button>
+      <button type="button" class="ghost-btn" id="vpClearBtn">🗑 امسح بصمة صوتي</button>
+      <label for="vpStrictInput" style="margin-top:8px;">درجة التركيز</label>
+      <select id="vpStrictInput"><option value="lenient">متساهل (يقبل صوتك حتى في الزحمة)</option><option value="balanced">متوازن</option><option value="strict">صارم (يتجاهل أي صوت مش متأكد منه)</option></select>
+      <label for="genderInput" style="margin-top:8px;">بتتكلم كـ</label>
+      <select id="genderInput"><option value="">مش محدد</option><option value="male">ولد</option><option value="female">بنت</option></select>
+      <div class="hint">بعد التدريب، M-G بيتجاهل التليفزيون والناس والعربيات حتى لو أعلى من صوتك، ويسمعك إنت حتى لو صوتك واطي. وبيكلمك بصيغة المذكر أو المؤنث حسب اختيارك.</div>
     </div>
 
     <div class="field">
@@ -1202,7 +1214,7 @@
        speech->text (audio is sent to Gemini), and a continuous voice-activity loop so the
        call never "stops hearing you" after the first sentence. */
     var V2_KEY = 'mgai_voice_v2';
-    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:800, sttModel:'' };
+    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:900, sttModel:'', vpStrict:'balanced', gender:'' };
     var GEMINI_VOICES = [
       ['Kore','حازم وواضح'], ['Puck','مرِح ومتحمس'], ['Charon','رزين ومعلوماتي'], ['Fenrir','حماسي'],
       ['Aoede','خفيف ومريح'], ['Leda','شبابي'], ['Orus','قوي وحازم'], ['Zephyr','مشرق'],
@@ -1220,6 +1232,7 @@
       } catch(e) {}
     })();
     if (V2.ttsModel === 'gemini-2.5-flash-preview-tts' && !V2.ttsMigrated) { V2.ttsModel = 'gemini-3.8-flash-tts'; V2.ttsMigrated = true; }
+    V2.endMs = [700, 900, 1300].reduce(function(best, v){ return Math.abs(v - (V2.endMs || 900)) < Math.abs(best - (V2.endMs || 900)) ? v : best; }, 900);
     function saveV2(){ try { localStorage.setItem(V2_KEY, JSON.stringify(V2)); } catch(e) {} }
 
     function toast(msg){
@@ -1676,11 +1689,11 @@
       orbLevel(rms);
       var st = voiceMode.state;
       var frameMs = 1000 * n / e.inputBuffer.sampleRate;
-      var listening = (st === 'listening' || st === 'standby') && !mic.muted && Date.now() > mic.echoUntil;
+      var listening = (st === 'listening' || st === 'standby' || st === 'enroll') && !mic.muted && Date.now() > mic.echoUntil;
       var barge = st === 'speaking' && V2.bargeIn && !mic.muted;
       if (!listening && !barge) { if (mic.speaking || mic.pre.length) resetVad(); return; }
 
-      var thr = barge ? Math.max(0.05, mic.floor * 8) : Math.max(0.014, mic.floor * 3.2);
+      var thr = barge ? Math.max(0.05, mic.floor * 8) : (voiceprint ? Math.max(0.008, mic.floor * 2.3) : Math.max(0.014, mic.floor * 3.2));
       var isLoud = rms > thr;
       var copy = new Float32Array(inp);
 
@@ -1703,8 +1716,8 @@
       mic.utter.push(copy);
       mic.totalMs += frameMs;
       if (rms > thr * 0.75) { mic.silMs = 0; mic.voicedMs += frameMs; } else { mic.silMs += frameMs; }
-      var sb = st === 'standby';
-      if (mic.silMs >= (sb ? 850 : END_SILENCE_MS) || mic.totalMs >= (sb ? 10000 : MAX_UTTERANCE_MS)) finishUtterance();
+      var sb = st === 'standby', en_ = st === 'enroll';
+      if (mic.silMs >= (sb ? 850 : (en_ ? 1000 : END_SILENCE_MS)) || mic.totalMs >= (sb ? 10000 : (en_ ? 12000 : MAX_UTTERANCE_MS))) finishUtterance();
     }
 
     function downsampleTo16k(f32, srcRate){
@@ -1781,8 +1794,15 @@
     function finishUtterance(){
       var frames = mic.utter, voiced = mic.voicedMs, sr = mic.sr;
       var standby = voiceMode.state === 'standby';
+      var enrolling = voiceMode.state === 'enroll';
       resetVad();
+      if (enrolling) { handleEnrollSegment(frames, voiced, sr); return; }
       if (voiced < (standby ? 380 : 300) || !frames.length) return;   /* just a noise burst */
+      if (voiceprint && !vpVerify(frames, sr).ok) {   /* not my user's voice: ignore it without spending any quota */
+        if (standby) { setVoiceState('standby', '🔇 مش صوتك — بتجاهله', 'gray'); setTimeout(function(){ if (voiceMode.state === 'standby') standbyIdleLabel(); }, 1800); }
+        else startListening();
+        return;
+      }
       if (standby) {
         if (!standbyAllow()) return;
         setVoiceState('standby', 'بسمع.. هل ندهتلي؟', 'gray');
@@ -1880,6 +1900,7 @@
 
     function closeVoiceMode(){
       voiceMode.open = false;
+      voiceMode.enroll = null;
       liveClose();
       voiceMode.turn++;
       ttsStop();
@@ -1982,7 +2003,8 @@
     var LIVE_CACHE_KEY = 'mgai_livemodels_v1';
     var live = { ws:null, ready:false, connecting:null, model:null, handle:null, nextT:0, sources:[], userBuf:'', aiBuf:'', turnDone:true, speaking:false, drop:false,
                  sendBuf:[], sendLen:0, closing:false, retries:0, noSearch:false, level:0, talk:false, loud:0, lastVoice:0, voicedMs:0, pre:[],
-                 replyTimer:null, idleTimer:null, prewarmTimer:null, awaitReply:false, cmdDone:false, endAfter:false, greeting:false };
+                 replyTimer:null, idleTimer:null, prewarmTimer:null, awaitReply:false, cmdDone:false, endAfter:false, greeting:false,
+                 cand:null, recent:[], vsince:0, failStreak:0, talkStart:0, lastForeign:0, mon:{ active:false, frames:[], pre:[], loud:0, voiced:0, sil:0, sr:48000 } };
 
     async function liveDiscoverModels(){
       try {
@@ -2041,6 +2063,7 @@
       var nowD = new Date();
       sys += '\n\nمعلومة للسياق: التاريخ والوقت دلوقتي عند المستخدم: ' + nowD.toLocaleString('ar-EG', { dateStyle:'full', timeStyle:'short' }) + ' (24 ساعة: ' + nowD.getHours() + ':' + ('0' + nowD.getMinutes()).slice(-2) + ').';
       sys += memoryBlock();
+      sys += genderNote();
       sys += LIVE_PROMPT;
       var recent = (state.messages || []).filter(function(m){ return !m.error && m.content; }).slice(-8).map(function(m){
         return (m.role === 'user' ? 'المستخدم' : 'إنت') + ': ' + splitMemory(String(m.content)).clean.replace(/\s+/g, ' ').slice(0, 350);
@@ -2069,13 +2092,14 @@
         inputAudioTranscription: {},
         outputAudioTranscription: {}
       };
-      if (o.level === 0) {
+      if (o.level === 0) setup.generationConfig.thinkingConfig = /\d\.\d/.test(model) && !/2\.5/.test(model) ? { thinkingLevel:'minimal' } : { thinkingBudget:0 };
+      if (o.level <= 1) {
         setup.inputAudioTranscription = { languageCodes: ['ar-EG', 'en-US'], customVocabulary: ['M-G', 'إم جي', 'MG'] };
         setup.realtimeInputConfig = { automaticActivityDetection: { endOfSpeechSensitivity:'END_SENSITIVITY_LOW', silenceDurationMs: Math.max(450, (V2.endMs || 800) - 200), prefixPaddingMs:120 }, turnCoverage:'TURN_INCLUDES_ONLY_ACTIVITY' };
         setup.proactivity = { proactiveAudio: true };
         setup.contextWindowCompression = { slidingWindow: {} };
         setup.tools = liveTools(o.search);
-      } else if (o.level === 1) {
+      } else if (o.level === 2) {
         setup.realtimeInputConfig = { automaticActivityDetection: { endOfSpeechSensitivity:'END_SENSITIVITY_LOW', silenceDurationMs:700 } };
         setup.tools = liveTools(false);
       }
@@ -2121,10 +2145,10 @@
       if (!state.apiKey) throw new Error('مفيش مفتاح');
       live.closing = false;
       var models = await liveModelOrder(), lastErr = null;
-      for (var i = 0; i < models.length && i < 4; i++) {
-        for (var level = 0; level < 3; level++) {
+      for (var i = 0; i < models.length && i < 3; i++) {
+        for (var level = 0; level < 4; level++) {
           if (!voiceMode.open) throw new Error('اتقفلت');
-          var withSearch = !!(V2.search && !live.noSearch && level === 0);
+          var withSearch = !!(V2.search && !live.noSearch && level <= 1);
           try {
             var ws = await liveOpen(models[i], { level:level, search:withSearch, handle: live.handle });
             live.ws = ws; live.model = models[i]; live.ready = true; live.retries = 0; live.level = level;
@@ -2134,7 +2158,7 @@
             return true;
           } catch (e) {
             lastErr = e;
-            if (withSearch) live.noSearch = true;
+            if (withSearch && level === 1) live.noSearch = true;
             if (/429|quota|RESOURCE_EXHAUSTED/i.test(e.message || '')) throw e;
           }
         }
@@ -2303,7 +2327,13 @@
       if (!voiceMode.live) return;   /* idle pre-warmed session: ignore */
       var sc = m.serverContent;
       if (!sc) return;
-      if (sc.interrupted) { live.drop = false; liveStopPlayback(); liveFlushTurn(); live.turnDone = true; if (voiceMode.open) { setVoiceState('listening', 'سامعك...', 'blue'); } return; }
+      if (sc.interrupted) {
+        live.drop = false;
+        if (V2.bargeIn) liveStopPlayback();   /* otherwise nothing but "استنى" or a tap may cut M-G off */
+        liveFlushTurn(); live.turnDone = true;
+        if (voiceMode.open && !live.speaking && !live.sources.length) setVoiceState('listening', 'سامعك...', 'blue');
+        return;
+      }
       if (sc.inputTranscription && sc.inputTranscription.text) {
         live.turnDone = false;
         live.userBuf += sc.inputTranscription.text;
@@ -2365,31 +2395,70 @@
         armIdle(V2.idleSec || 12);
       }, 12000);
     }
+    function liveStartTalk(frames, sr){
+      live.talk = true; live.lastVoice = Date.now(); live.talkStart = Date.now(); live.vsince = 0; live.failStreak = 0; live.cand = null;
+      live.recent = frames.slice(-40);
+      frames.forEach(function(f){ liveSendFrame(f, sr); });
+      liveUserStart();
+    }
+    function showForeignVoice(){
+      if (Date.now() - live.lastForeign < 6000) return;
+      live.lastForeign = Date.now();
+      if (els.voiceTranscript) { els.voiceTranscript.textContent = '🔇 سمعت صوت مش صوتك.. بتجاهله'; setTimeout(function(){ if (els.voiceTranscript && /مش صوتك/.test(els.voiceTranscript.textContent)) els.voiceTranscript.textContent = ''; }, 2500); }
+    }
     function liveSendMic(inp, sr){
       var n = inp.length, sum = 0, i;
       for (i = 0; i < n; i++) sum += inp[i] * inp[i];
       var rms = Math.sqrt(sum / n);
       orbLevel(rms);
-      if (!live.ready || !live.ws || live.ws.readyState !== 1 || mic.muted) { live.talk = false; live.loud = 0; return; }
+      if (!live.ready || !live.ws || live.ws.readyState !== 1 || mic.muted) { live.talk = false; live.loud = 0; live.cand = null; return; }
+      var frameMs = 1000 * n / sr;
       var blocked = (live.speaking || Date.now() < mic.echoUntil) && !V2.bargeIn;
-      var thr = Math.max(0.014, mic.floor * 3.2);
+      if (blocked) {   /* M-G is talking: nothing goes to the server, so nothing can interrupt it. Only "استنى" is listened for. */
+        live.talk = false; live.cand = null; live.loud = 0;
+        if (live.speaking) monitorFrame(inp, sr, rms);
+        return;
+      }
+      var enrolled = !!voiceprint;
+      var thr = enrolled ? Math.max(0.008, mic.floor * 2.3) : Math.max(0.014, mic.floor * 3.2);
       if (V2.bargeIn && live.speaking) thr = Math.max(0.045, mic.floor * 7);
-      var isLoud = rms > thr, copy = new Float32Array(inp);
+      var isLoud = rms > thr, copy = new Float32Array(inp), cd;
       if (!live.talk) {
-        if (!isLoud && !blocked) mic.floor = Math.min(0.05, Math.max(0.002, mic.floor * 0.96 + rms * 0.04));
-        live.pre.push(copy); if (live.pre.length > 9) live.pre.shift();
-        live.loud = (isLoud && !blocked) ? live.loud + 1 : 0;
-        if (live.loud >= 3) {
-          live.talk = true; live.lastVoice = Date.now(); live.loud = 0;
-          live.pre.forEach(function(f){ liveSendFrame(f, sr); });
-          live.pre = [];
-          liveUserStart();
+        if (!isLoud && !live.cand) mic.floor = Math.min(0.05, Math.max(0.002, mic.floor * 0.96 + rms * 0.04));
+        if (!enrolled) {
+          live.pre.push(copy); if (live.pre.length > 9) live.pre.shift();
+          live.loud = isLoud ? live.loud + 1 : 0;
+          if (live.loud >= 3) { live.loud = 0; var pf = live.pre; live.pre = []; liveStartTalk(pf, sr); }
+          return;
         }
+        cd = live.cand;
+        if (!cd) {
+          live.pre.push(copy); if (live.pre.length > 12) live.pre.shift();
+          live.loud = isLoud ? live.loud + 1 : 0;
+          if (live.loud >= 3) { live.loud = 0; live.cand = { frames: live.pre.slice(), voiced:0, sil:0, lastCheck:0 }; live.pre = []; }
+          return;
+        }
+        /* candidate speech: held back until it is verified as YOUR voice */
+        cd.frames.push(copy); if (cd.frames.length > 130) cd.frames.shift();
+        if (isLoud) { cd.voiced += frameMs; cd.sil = 0; } else cd.sil += frameMs;
+        if (cd.voiced >= 450 && cd.voiced - cd.lastCheck >= 300) {
+          cd.lastCheck = cd.voiced;
+          if (vpVerify(cd.frames.slice(-22), sr).ok) { liveStartTalk(cd.frames.slice(-26), sr); return; }   /* judge the latest ~1s only, so a TV/another person just before you can't poison it */
+          if (cd.voiced > 2600) { live.cand = null; showForeignVoice(); return; }
+        }
+        if (cd.sil > 700) live.cand = null;
         return;
       }
       liveSendFrame(copy, sr);
-      if (isLoud) live.lastVoice = Date.now();
-      if (Date.now() - live.lastVoice >= (V2.endMs || 800)) { live.talk = false; liveFlushSend(); liveUserEnd(); }
+      live.recent.push(copy); if (live.recent.length > 45) live.recent.shift();
+      if (isLoud) { live.lastVoice = Date.now(); live.vsince += frameMs; }
+      if (enrolled && live.vsince >= 1500) {
+        live.vsince = 0;
+        live.failStreak = vpVerify(live.recent.slice(-36), sr, { slack:1.3 }).ok ? 0 : live.failStreak + 1;
+        if (live.failStreak >= 2) { live.failStreak = 0; live.talk = false; liveFlushSend(); liveUserEnd(); return; }   /* someone else took over */
+      }
+      var endMs = (V2.endMs || 900) + ((Date.now() - live.talkStart) < 1500 ? 250 : 0);
+      if (Date.now() - live.lastVoice >= endMs) { live.talk = false; liveFlushSend(); liveUserEnd(); }
     }
 
     function liveInterrupt(){
@@ -2426,7 +2495,8 @@
       if (ws) { try { ws.close(); } catch(e) {} }
       liveStopPlayback();
       liveFlushTurn();
-      live.sendBuf = []; live.sendLen = 0; live.turnDone = true; live.talk = false; live.loud = 0; live.pre = [];
+      live.sendBuf = []; live.sendLen = 0; live.turnDone = true; live.talk = false; live.loud = 0; live.pre = []; live.cand = null;
+      live.mon = { active:false, frames:[], pre:[], loud:0, voiced:0, sil:0, sr:48000 };
       live.awaitReply = false; live.greeting = false; live.cmdDone = false; live.endAfter = false;
       voiceMode.live = false; voiceMode.phase = 'idle';
     }
@@ -2538,7 +2608,7 @@
       liveClearTimers();
       liveFlushTurn();
       liveStopPlayback();
-      live.talk = false; live.loud = 0; live.sendBuf = []; live.sendLen = 0; live.awaitReply = false; live.greeting = false; live.cmdDone = false; live.endAfter = false;
+      live.talk = false; live.loud = 0; live.cand = null; live.sendBuf = []; live.sendLen = 0; live.awaitReply = false; live.greeting = false; live.cmdDone = false; live.endAfter = false;
       voiceMode.live = false;
       if (reason !== 'silent') earcon('end');
       if (V2.wakeMode && voiceMode.open) enterStandby();
@@ -2775,6 +2845,269 @@
       return out;
     }
 
+    /* ================= voice focus: M-G only listens to YOUR voice ================= */
+    /* A small on-device speaker matcher: during a 30-second training it learns your voice
+       (spectral shape + pitch). Afterwards only audio that matches it is transcribed or sent,
+       so TV, passers-by, car noise and other people are ignored, even when they are louder
+       than you. It's a lightweight matcher, not bank-grade biometrics. */
+    var VP_KEY = 'mgai_voiceprint_v1';
+    var voiceprint = null;
+    try { voiceprint = JSON.parse(localStorage.getItem(VP_KEY) || 'null'); if (!voiceprint || !voiceprint.mean) voiceprint = null; } catch(e) { voiceprint = null; }
+    function saveVoiceprint(){ try { if (voiceprint) localStorage.setItem(VP_KEY, JSON.stringify(voiceprint)); else localStorage.removeItem(VP_KEY); } catch(e) {} }
+    var VP = { ready:false };
+
+    function vpInit(){
+      if (VP.ready) return;
+      var N = 512, i, k, c;
+      VP.N = N;
+      VP.win = new Float32Array(400);
+      for (i = 0; i < 400; i++) VP.win[i] = 0.54 - 0.46 * Math.cos(2 * Math.PI * i / 399);
+      VP.cos = new Float32Array(N / 2); VP.sin = new Float32Array(N / 2);
+      for (i = 0; i < N / 2; i++) { VP.cos[i] = Math.cos(2 * Math.PI * i / N); VP.sin[i] = -Math.sin(2 * Math.PI * i / N); }
+      VP.rev = new Uint16Array(N);
+      for (i = 0; i < N; i++) { var r = 0, x = i; for (var b = 0; b < 9; b++) { r = (r << 1) | (x & 1); x >>= 1; } VP.rev[i] = r; }
+      var nm = 26;
+      function mel(f){ return 2595 * Math.log10(1 + f / 700); }
+      function imel(m){ return 700 * (Math.pow(10, m / 2595) - 1); }
+      var pts = [];
+      for (i = 0; i < nm + 2; i++) pts.push(imel(mel(100) + (mel(6000) - mel(100)) * i / (nm + 1)));
+      var bins = pts.map(function(f){ return Math.floor((N + 1) * f / 16000); });
+      VP.mel = [];
+      for (i = 1; i <= nm; i++) {
+        var f = new Float32Array(N / 2 + 1);
+        for (k = bins[i-1]; k < bins[i]; k++) f[k] = (k - bins[i-1]) / Math.max(1, bins[i] - bins[i-1]);
+        for (k = bins[i]; k < bins[i+1]; k++) f[k] = (bins[i+1] - k) / Math.max(1, bins[i+1] - bins[i]);
+        VP.mel.push(f);
+      }
+      VP.nm = nm; VP.nb = 20; VP.dct = [];
+      for (c = 0; c < 20; c++) { var row = new Float32Array(nm); for (i = 0; i < VP.nb; i++) row[i] = Math.cos(Math.PI * c * (i + 0.5) / VP.nb); VP.dct.push(row); }
+      VP.re = new Float32Array(N); VP.im = new Float32Array(N);
+      VP.ready = true;
+    }
+    function vpFFT(re, im){
+      var N = VP.N, i, j, k, t;
+      for (i = 0; i < N; i++) { j = VP.rev[i]; if (j > i) { t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
+      for (var size = 2; size <= N; size <<= 1) {
+        var half = size >> 1, step = N / size;
+        for (i = 0; i < N; i += size) {
+          for (j = 0, k = 0; j < half; j++, k += step) {
+            var a = i + j, b = a + half;
+            var tr = re[b] * VP.cos[k] - im[b] * VP.sin[k];
+            var ti = re[b] * VP.sin[k] + im[b] * VP.cos[k];
+            re[b] = re[a] - tr; im[b] = im[a] - ti; re[a] += tr; im[a] += ti;
+          }
+        }
+      }
+    }
+    /* x: Float32Array at 16 kHz -> { mean[19], std[19], f0, nv }  (with light noise subtraction) */
+    function vpFeatures(x){
+      vpInit();
+      var n = x.length, i, f, j, c;
+      if (n < 3200) return null;
+      var nf = Math.floor((n - 400) / 160) + 1, nm = VP.nm;
+      var en = new Float32Array(nf), mp = new Float32Array(nf * nm);
+      var re = VP.re, im = VP.im;
+      for (f = 0; f < nf; f++) {
+        var off = f * 160, e = 0;
+        for (i = 0; i < 512; i++) { re[i] = 0; im[i] = 0; }
+        for (i = 0; i < 400; i++) { e += x[off + i] * x[off + i]; re[i] = (x[off + i] - (i ? 0.97 * x[off + i - 1] : 0)) * VP.win[i]; }
+        en[f] = e;
+        vpFFT(re, im);
+        for (j = 0; j < nm; j++) {
+          var s = 0, fb = VP.mel[j];
+          for (i = 0; i <= 256; i++) { if (fb[i]) s += fb[i] * (re[i] * re[i] + im[i] * im[i]); }
+          mp[f * nm + j] = s;
+        }
+      }
+      var order = Array.prototype.slice.call(en).map(function(v, idx){ return idx; }).sort(function(a, b){ return en[a] - en[b]; });
+      /* noise estimate: the quietest 15% of frames */
+      var nq = Math.max(3, Math.floor(nf * 0.15)), noise = new Float32Array(nm);
+      for (i = 0; i < nq; i++) for (j = 0; j < nm; j++) noise[j] += mp[order[i] * nm + j] / nq;
+      /* only subtract when the segment really contains quiet frames (>= ~10 dB below the speech) */
+      var eq = 0, es = 0;
+      for (i = 0; i < nq; i++) eq += en[order[i]] / nq;
+      var topStart = Math.floor(nf * 0.6), topN = 0;
+      for (i = topStart; i < nf; i++) { es += en[order[i]]; topN++; }
+      es = es / Math.max(1, topN);
+      var useNoise = eq < 0.1 * es;
+      if (!useNoise) noise.fill(0);
+      var thr = Math.max(en[order[Math.floor(nf * 0.4)]], 0.004);
+      var NC = 19, sum = new Float64Array(NC), sq = new Float64Array(NC), cnt = 0, f0s = [], logm = new Float32Array(nm);
+      for (f = 0; f < nf; f++) {
+        if (en[f] < thr) continue;
+        for (j = 0; j < nm; j++) { var p = mp[f * nm + j]; logm[j] = Math.log(Math.max(p - 0.8 * noise[j], 0.2 * p) + 1e-9); }
+        for (c = 1; c <= NC; c++) {
+          var v = 0, row = VP.dct[c];
+          for (j = 0; j < VP.nb; j++) v += row[j] * logm[j];
+          sum[c - 1] += v; sq[c - 1] += v * v;
+        }
+        cnt++;
+        var o2 = f * 160, r0 = en[f], best = 0, bl = 0;
+        if (r0 > 0) {
+          for (var lag = 40; lag <= 228; lag++) {
+            var ac = 0;
+            for (i = 0; i + lag < 400; i++) ac += x[o2 + i] * x[o2 + i + lag];
+            var nr = ac / r0;
+            if (nr > best) { best = nr; bl = lag; }
+          }
+          if (best > 0.5 && bl) f0s.push(16000 / bl);
+        }
+      }
+      if (cnt < 8) return null;
+      var mean = [], std = [];
+      for (i = 0; i < NC; i++) { var m = sum[i] / cnt; mean.push(m); std.push(Math.sqrt(Math.max(0, sq[i] / cnt - m * m))); }
+      var f0 = 0;
+      if (f0s.length >= 6) { f0s.sort(function(a, b){ return a - b; }); f0 = f0s[Math.floor(f0s.length / 2)]; }
+      return { mean:mean, std:std, f0:f0, nv:cnt };
+    }
+    function vpDist(ft, vp){
+      var d = 0, n = ft.mean.length;
+      for (var i = 0; i < n; i++) { var z = (ft.mean[i] - vp.mean[i]) / vp.sd[i]; d += z * z; }
+      return Math.sqrt(d / n);
+    }
+    function vpBuild(segs){
+      var n = segs.length, NC = segs[0].mean.length, i, k;
+      function centroid(skip){
+        var c = new Array(NC).fill(0), m = 0;
+        for (k = 0; k < n; k++) { if (k === skip) continue; m++; for (i = 0; i < NC; i++) c[i] += segs[k].mean[i]; }
+        return c.map(function(v){ return v / m; });
+      }
+      var cen = centroid(-1), inter = new Array(NC).fill(0), intra = new Array(NC).fill(0);
+      for (k = 0; k < n; k++) for (i = 0; i < NC; i++) { inter[i] += Math.pow(segs[k].mean[i] - cen[i], 2); intra[i] += segs[k].std[i]; }
+      var sd = [];
+      for (i = 0; i < NC; i++) sd.push(Math.max(Math.sqrt(inter[i] / n), 0.3 * intra[i] / n, 0.4));
+      var f0s = segs.map(function(s){ return s.f0; }).filter(function(v){ return v > 0; }).sort(function(a, b){ return a - b; });
+      var f0 = f0s.length ? f0s[Math.floor(f0s.length / 2)] : 0;
+      var vp = { mean:cen, sd:sd, f0:f0, thr:2, n:n, t:Date.now() };
+      var ds = [];
+      for (k = 0; k < n; k++) ds.push(vpDist(segs[k], { mean:centroid(k), sd:sd }));
+      vp.thr = Math.max(1.8, Math.max.apply(null, ds) * 1.4);
+      return vp;
+    }
+    function framesToF32(frames){
+      var total = 0, i;
+      for (i = 0; i < frames.length; i++) total += frames[i].length;
+      var all = new Float32Array(total), off = 0;
+      for (i = 0; i < frames.length; i++) { all.set(frames[i], off); off += frames[i].length; }
+      return all;
+    }
+    /* does this audio sound like the enrolled user? (no voiceprint => everything passes) */
+    function vpVerify(frames, sr, o){
+      if (!voiceprint) return { ok:true, enrolled:false };
+      o = o || {};
+      var ft = vpFeatures(downsampleTo16k(framesToF32(frames), sr));
+      if (!ft) return { ok:false, enrolled:true, short:true, d:99 };
+      var strict = V2.vpStrict || 'balanced';
+      var mult = ({ lenient:1.35, balanced:1, strict:0.8 })[strict] * (o.slack || 1);
+      var shortBoost = 1 + 0.5 * Math.max(0, (40 - ft.nv) / 40);
+      var d = vpDist(ft, voiceprint), ok = d <= voiceprint.thr * mult * shortBoost;
+      if (ok && voiceprint.f0 > 0 && ft.f0 > 0) {
+        var tol = ({ lenient:0.4, balanced:0.3, strict:0.22 })[strict] * (o.slack ? 1.15 : 1);
+        if (Math.abs(Math.log(ft.f0 / voiceprint.f0)) > tol) ok = false;
+      }
+      return { ok:ok, enrolled:true, d:d, thr:voiceprint.thr * mult * shortBoost, f0:ft.f0 };
+    }
+
+    /* ---- training ---- */
+    var VP_PROMPTS = [
+      'قول: «إم جي» بصوتك العادي',
+      'قول: «أهلًا يا إم جي، عامل إيه النهارده؟»',
+      'قول: «اضبطلي منبه الساعة سبعة ونص الصبح»',
+      'قول: «دوّرلي على مسلسل كرتون قديم»',
+      'قول بصوت واطي شوية: «أنا بكلمك من غير ما أعلّي صوتي»',
+      'قول: «Hello M-G, can you hear me clearly?»'
+    ];
+    function openEnrollment(){
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('الجهاز مش بيدعم الميكروفون هنا.'); return; }
+      if (voiceMode.open) closeVoiceMode();
+      getAudioCtx();
+      voiceMode.open = true; voiceMode.paused = false; voiceMode.turn++;
+      voiceMode.enroll = { i:0, segs:[] };
+      els.voiceOverlay.hidden = false;
+      requestAnimationFrame(function(){ els.voiceOverlay.classList.add('open'); });
+      closeSettings();
+      setVoiceState('idle', 'بستأذن على الميكروفون...');
+      micOpen().then(function(){
+        mic.muted = false; refreshMuteBtn();
+        enrollPrompt();
+      }).catch(function(err){ setVoiceState('idle', 'مقدرتش أفتح الميكروفون: ' + errShort(err)); });
+    }
+    function enrollPrompt(){
+      var e = voiceMode.enroll; if (!e || !voiceMode.open) return;
+      resetVad(); mic.echoUntil = Date.now() + 250;
+      setVoiceState('enroll', 'تدريب ' + (e.i + 1) + ' من ' + VP_PROMPTS.length + ' — اتكلم بعد ما تقرا الجملة', 'blue');
+      if (els.voiceTranscript) els.voiceTranscript.textContent = VP_PROMPTS[e.i];
+    }
+    function handleEnrollSegment(frames, voiced, sr){
+      var e = voiceMode.enroll; if (!e) return;
+      if (voiced < 1000) { setVoiceState('enroll', 'قصيرة شوية.. قولها تاني وكمّل الجملة كلها', 'blue'); return; }
+      var ft = vpFeatures(downsampleTo16k(framesToF32(frames), sr));
+      if (!ft) { setVoiceState('enroll', 'مسمعتكش كويس.. قرّب شوية وقولها تاني', 'blue'); return; }
+      e.segs.push(ft); e.i++;
+      earcon('ok');
+      if (e.i < VP_PROMPTS.length) { setTimeout(enrollPrompt, 500); return; }
+      voiceprint = vpBuild(e.segs);
+      saveVoiceprint();
+      var g = voiceprint.f0 > 0 ? (voiceprint.f0 < 165 ? 'male' : 'female') : '';
+      if (g && !V2.gender) { V2.gender = g; saveV2(); var gi = document.getElementById('genderInput'); if (gi) gi.value = g; }
+      voiceMode.enroll = null;
+      setVoiceState('idle', '✅ اتسجّل صوتك. من دلوقتي بيركّز عليك بس.');
+      if (els.voiceTranscript) els.voiceTranscript.textContent = g ? ('صوتك أقرب لـ ' + (g === 'male' ? 'ولد' : 'بنت') + ' — غيّرها من الإعدادات لو غلط') : '';
+      updateVpInfo();
+      setTimeout(function(){ if (voiceMode.open && !voiceMode.enroll) closeVoiceMode(); }, 2600);
+    }
+    function updateVpInfo(){
+      var el = document.getElementById('vpInfo'); if (!el) return;
+      el.textContent = voiceprint
+        ? ('✅ بصمة صوتك متسجّلة (' + voiceprint.n + ' عيّنات، ' + new Date(voiceprint.t).toLocaleDateString('ar-EG') + '). M-G بيتجاهل أي صوت مش صوتك.')
+        : 'لسه مفيش بصمة. من غيرها بيسمع أي صوت حواليك (تليفزيون، ناس، عربيات). التدريب بياخد نص دقيقة بس.';
+    }
+    function genderNote(){
+      if (V2.gender === 'male') return '\n\nالمستخدم ولد (ذكر): خاطبه دايمًا بصيغة المذكر (إنت، جاهز، عايز…).';
+      if (V2.gender === 'female') return '\n\nالمستخدمة بنت (أنثى): خاطبها دايمًا بصيغة المؤنث (إنتي، جاهزة، عايزة…).';
+      return '';
+    }
+
+    /* ---- stop words while M-G is talking ---- */
+    var STOP_RE = /(^|\s)(استني|استنا|استنو|وقف|وقفي|اسكت|اسكتي|كفايه|كفايا|هدي|ثانيه|لحظه|stop|wait|hold on|enough|pause)(\s|$)/i;
+    var monLog = [];
+    function monAllow(){
+      var now = Date.now();
+      monLog = monLog.filter(function(t){ return now - t < 60000; });
+      if (monLog.length >= 6) return false;
+      monLog.push(now); return true;
+    }
+    function isStopPhrase(text){
+      var t = normAr(text).toLowerCase().replace(/[^\u0600-\u06FFa-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      var words = t ? t.split(' ') : [];
+      if (!words.length || words.length > 5) return false;
+      if (STOP_RE.test(t)) return true;
+      return words.length <= 2 && /^(بس|خلاص|كفايه)$/.test(words[0]);
+    }
+    function monitorFrame(inp, sr, rms){
+      var m = live.mon, enrolled = !!voiceprint;
+      var thr = enrolled ? Math.max(0.02, mic.floor * 4) : Math.max(0.05, mic.floor * 8);
+      var isLoud = rms > thr, copy = new Float32Array(inp), fm = 1000 * inp.length / sr;
+      if (!m.active) {
+        m.pre.push(copy); if (m.pre.length > 6) m.pre.shift();
+        m.loud = isLoud ? m.loud + 1 : 0;
+        if (m.loud >= 3) { m.active = true; m.frames = m.pre.slice(); m.pre = []; m.voiced = 0; m.sil = 0; m.sr = sr; }
+        return;
+      }
+      m.frames.push(copy);
+      if (isLoud) { m.voiced += fm; m.sil = 0; } else m.sil += fm;
+      if (m.sil >= 450 || m.frames.length > 140) {
+        var fr = m.frames, vo = m.voiced, s2 = m.sr;
+        live.mon = { active:false, frames:[], pre:[], loud:0, voiced:0, sil:0, sr:sr };
+        if (vo < 250 || fr.length > 100 || !monAllow()) return;
+        if (enrolled && !vpVerify(fr, s2, { slack:1.2 }).ok) return;
+        var b64 = bytesToB64(encodeWav(downsampleTo16k(framesToF32(fr), s2), 16000));
+        transcribeWav(b64, undefined).then(function(text){
+          if (live.speaking && voiceMode.live && isStopPhrase(text)) { toast('⏸ وقفته'); liveInterrupt(); }
+        }).catch(function(){});
+      }
+    }
+
     /* ================= long-term memory (self-learning) ================= */
     var MEM_KEY = 'mgai_memory_v1';
     var memory = [];
@@ -2832,7 +3165,7 @@
       try { persistCurrentConversation(); } catch(e) {}
       var settings = null;
       try { settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch(e) {}
-      return { app:'MG.ai', format:1, exportedAt:new Date().toISOString(), conversations:state.conversations, memory:memory, settings:settings, voice:V2, voicePrefs:loadVoicePrefs() };
+      return { app:'MG.ai', format:1, exportedAt:new Date().toISOString(), conversations:state.conversations, memory:memory, settings:settings, voice:V2, voicePrefs:loadVoicePrefs(), voiceprint:voiceprint };
     }
     async function exportBackup(){
       var json = JSON.stringify(buildBackup());
@@ -2889,6 +3222,7 @@
         try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data.settings)); loadSettings(); updateStatus(); } catch(e) {}
       }
       if (data.voice) { Object.keys(V2).forEach(function(k){ if (data.voice[k] !== undefined && !localStorage.getItem(V2_KEY)) V2[k] = data.voice[k]; }); saveV2(); }
+      if (data.voiceprint && data.voiceprint.mean && !voiceprint) { voiceprint = data.voiceprint; saveVoiceprint(); updateVpInfo(); }
       renderConversationsList();
       updateBackupInfo();
       toast('✅ اتسترجع ' + added + ' محادثة.');
@@ -2916,7 +3250,7 @@
 
     function openSettings(){
       loadVoiceList();
-      try { updateBackupInfo(); renderMemoryList(); } catch(e) {}
+      try { updateBackupInfo(); renderMemoryList(); updateVpInfo(); } catch(e) {}
       els.sheet.hidden = false;
       els.backdrop.hidden = false;
       requestAnimationFrame(function(){
@@ -3539,7 +3873,7 @@
       }
       var nowD = new Date();
       sysText = (sysText ? sysText + '\n\n' : '') + 'معلومة للسياق: التاريخ والوقت دلوقتي عند المستخدم: ' + nowD.toLocaleString('ar-EG', { dateStyle:'full', timeStyle:'short' }) + ' (' + (Intl.DateTimeFormat().resolvedOptions().timeZone || '') + '). لو السؤال عن حاجة ممكن تكون اتغيرت أو جديدة (أخبار، أسعار، إصدارات مكتبات، أحداث) استخدم البحث على الويب وما تعتمدش على ذاكرتك بس، وقول إنك بحثت.';
-      sysText = sysText + MEMORY_INSTR + memoryBlock();
+      sysText = sysText + MEMORY_INSTR + memoryBlock() + genderNote();
       if (voiceMode.open) sysText = sysText + VOICE_PROMPT;
       if (opts.agent) {
         if (V2.search) { body.tools = [{ functionDeclarations: AGENT_TOOLS[0].functionDeclarations.concat(WEB_FUNCS) }]; sysText += WEB_PROMPT; }
@@ -4593,11 +4927,13 @@
       g('liveModelInput').value = V2.liveModel || '';
       g('wakeModeInput').checked = V2.wakeMode !== false;
       g('idleSecInput').value = String(V2.idleSec || 12);
-      g('endMsInput').value = String(V2.endMs || 800);
+      g('endMsInput').value = String(V2.endMs || 900);
       g('ttsModelInput').value = V2.ttsModel;
       g('bargeInInput').checked = !!V2.bargeIn;
       g('thinkingInput').value = V2.thinking;
       g('searchInput').checked = V2.search !== false;
+      g('vpStrictInput').value = V2.vpStrict || 'balanced';
+      g('genderInput').value = V2.gender || '';
       g('extraKeysInput').value = V2.extraKeys || '';
       function syncV2(){
         V2.ttsEngine = g('ttsEngineInput').value;
@@ -4605,16 +4941,18 @@
         V2.liveModel = g('liveModelInput').value.trim();
         V2.wakeMode = g('wakeModeInput').checked;
         V2.idleSec = parseInt(g('idleSecInput').value, 10) || 12;
-        V2.endMs = parseInt(g('endMsInput').value, 10) || 800;
+        V2.endMs = parseInt(g('endMsInput').value, 10) || 900;
         V2.ttsModel = g('ttsModelInput').value.trim() || 'gemini-3.8-flash-tts';
         V2.bargeIn = g('bargeInInput').checked;
         V2.thinking = g('thinkingInput').value;
         V2.search = g('searchInput').checked;
+        V2.vpStrict = g('vpStrictInput').value;
+        V2.gender = g('genderInput').value;
         V2.extraKeys = g('extraKeysInput').value;
         ttsBlock = {};
         saveV2();
       }
-      ['ttsEngineInput','liveModeInput','liveModelInput','wakeModeInput','idleSecInput','endMsInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
+      ['ttsEngineInput','liveModeInput','liveModelInput','wakeModeInput','idleSecInput','endMsInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','vpStrictInput','genderInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
       renderGeminiVoiceList();
     })();
 
@@ -4637,6 +4975,13 @@
       var ok = await askConfirm({ title:'مسح الذاكرة', lines:['هتتمسح ' + memory.length + ' حاجة من ذاكرته.'], okLabel:'امسح' });
       if (ok) { memory = []; saveMemory(); renderMemoryList(); updateBackupInfo(); }
     });
+    document.getElementById('vpEnrollBtn').addEventListener('click', openEnrollment);
+    document.getElementById('vpClearBtn').addEventListener('click', async function(){
+      if (!voiceprint) return;
+      var ok = await askConfirm({ title:'مسح بصمة الصوت', lines:['هيرجع يسمع أي صوت حواليك لحد ما تدرّبه تاني.'], okLabel:'امسح' });
+      if (ok) { voiceprint = null; saveVoiceprint(); updateVpInfo(); }
+    });
+    updateVpInfo();
     renderMemoryList();
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e) {}
     setTimeout(function(){
