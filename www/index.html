@@ -502,6 +502,12 @@
   .voice-orb.state-standby .voice-orb-core{opacity:.6;animation:orb-breathe 4.2s ease-in-out infinite;}
   .voice-orb.state-standby .voice-orb-ring{opacity:.55;}
   .voice-orb.c-red.state-speaking .voice-orb-core{opacity:.25;}
+  .gen-image{margin-top:8px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg-elevated);max-width:100%;}
+  .gen-image img{display:block;width:100%;height:auto;cursor:zoom-in;}
+  .gen-image video{display:block;width:100%;height:auto;background:#000;}
+  .gen-image-ph{padding:26px;text-align:center;color:var(--text-secondary);font-size:13px;}
+  .gen-image-bar{display:flex;justify-content:flex-start;padding:6px 8px;border-top:1px solid var(--border);}
+  .gen-image-bar button{background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:4px 8px;}
 </style>
 </head>
 <body>
@@ -672,6 +678,7 @@
       <label>🎯 التركيز على صوتي</label>
       <div class="hint" id="vpInfo" style="margin:0 0 8px;"></div>
       <button type="button" class="text-btn" id="vpEnrollBtn" style="width:100%;padding:10px;">🎤 درّب التطبيق على صوتي (نص دقيقة)</button>
+      <button type="button" class="text-btn" id="vpMoreBtn" style="width:100%;padding:10px;margin-top:6px;">➕ تدريب إضافي (في المكان اللي بتستخدمه فيه)</button>
       <button type="button" class="ghost-btn" id="vpClearBtn">🗑 امسح بصمة صوتي</button>
       <label for="vpStrictInput" style="margin-top:8px;">درجة التركيز</label>
       <select id="vpStrictInput"><option value="lenient">متساهل (يقبل صوتك حتى في الزحمة)</option><option value="balanced">متوازن</option><option value="strict">صارم (يتجاهل أي صوت مش متأكد منه)</option></select>
@@ -1214,7 +1221,7 @@
        speech->text (audio is sent to Gemini), and a continuous voice-activity loop so the
        call never "stops hearing you" after the first sentence. */
     var V2_KEY = 'mgai_voice_v2';
-    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:900, sttModel:'', vpStrict:'balanced', gender:'' };
+    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:900, sttModel:'', vpStrict:'lenient', gender:'', vpMig2:true };
     var GEMINI_VOICES = [
       ['Kore','حازم وواضح'], ['Puck','مرِح ومتحمس'], ['Charon','رزين ومعلوماتي'], ['Fenrir','حماسي'],
       ['Aoede','خفيف ومريح'], ['Leda','شبابي'], ['Orus','قوي وحازم'], ['Zephyr','مشرق'],
@@ -1233,6 +1240,7 @@
     })();
     if (V2.ttsModel === 'gemini-2.5-flash-preview-tts' && !V2.ttsMigrated) { V2.ttsModel = 'gemini-3.8-flash-tts'; V2.ttsMigrated = true; }
     V2.endMs = [700, 900, 1300].reduce(function(best, v){ return Math.abs(v - (V2.endMs || 900)) < Math.abs(best - (V2.endMs || 900)) ? v : best; }, 900);
+    if (!V2.vpMig2) { V2.vpStrict = (V2.vpStrict === 'strict') ? 'strict' : 'lenient'; V2.vpMig2 = true; }
     function saveV2(){ try { localStorage.setItem(V2_KEY, JSON.stringify(V2)); } catch(e) {} }
 
     function toast(msg){
@@ -1798,8 +1806,9 @@
       resetVad();
       if (enrolling) { handleEnrollSegment(frames, voiced, sr); return; }
       if (voiced < (standby ? 380 : 300) || !frames.length) return;   /* just a noise burst */
-      if (voiceprint && !vpVerify(frames, sr).ok) {   /* not my user's voice: ignore it without spending any quota */
-        if (standby) { setVoiceState('standby', '🔇 مش صوتك — بتجاهله', 'gray'); setTimeout(function(){ if (voiceMode.state === 'standby') standbyIdleLabel(); }, 1800); }
+      var vr = voiceprint ? vpVerify(frames, sr) : null;
+      if (vr && !vr.ok) {   /* not my user's voice: ignore it without spending any quota */
+        if (standby) { setVoiceState('standby', '🔇 مش صوتك (' + (vr.d || 0).toFixed(1) + '/' + (vr.thr || 0).toFixed(1) + ') — لو ده إنت اضغط الدايرة', 'gray'); setTimeout(function(){ if (voiceMode.state === 'standby') standbyIdleLabel(); }, 3500); }
         else startListening();
         return;
       }
@@ -1851,7 +1860,7 @@
     }
 
     /* ---------- live voice call ---------- */
-    var VOICE_PROMPT = '\n\n[وضع المكالمة الصوتية المباشرة] كلامك دلوقتي هيتقري بصوت عالي، فاكتب زي ما بتتكلم: جمل طبيعية، من غير ماركداون ولا رموز ولا إيموجي ولا جداول ولا بلوكات كود (لو المطلوب كود قول إنك هتكتبه في الشات واشرح الفكرة بالكلام). ردّ بنفس لغة ولهجة المستخدم بالظبط: لو بيتكلم مصري ردّ بعامية مصرية طبيعية، ولو إنجليزي ردّ إنجليزي، ولو بيخلط الاتنين اخلط زيه. الكلمات التقنية الإنجليزية اكتبها بحروفها اللاتينية. خلّي الرد مفيد وفيه معلومة حقيقية، ومتوسط الطول (٣ لـ ٨ جمل) وطوّل أكتر لو السؤال محتاج شرح. لو السؤال بسيط جاوب مباشرة وبسرعة. اتكلم كإنسان ذكي وودود، مش كنشرة.';
+    var VOICE_PROMPT = '\n\n[وضع المكالمة الصوتية المباشرة] كلامك دلوقتي هيتقري بصوت عالي، فاكتب زي ما بتتكلم: جمل طبيعية، من غير ماركداون ولا رموز ولا إيموجي ولا جداول ولا بلوكات كود (لو المطلوب كود قول إنك هتكتبه في الشات واشرح الفكرة بالكلام). ردّ بنفس لغة ولهجة المستخدم بالظبط: لو بيتكلم مصري ردّ بعامية مصرية طبيعية، ولو إنجليزي ردّ إنجليزي، ولو بيخلط الاتنين اخلط زيه. الكلمات التقنية الإنجليزية اكتبها بحروفها اللاتينية. خلّي الرد مفيد وفيه معلومة حقيقية، ومتوسط الطول (٣ لـ ٨ جمل) وطوّل أكتر لو السؤال محتاج شرح. لو السؤال بسيط جاوب مباشرة وبسرعة. اتكلم كإنسان ذكي وودود، مش كنشرة. لو طلب منبه أو تايمر استخدم set_alarm / set_timer، ولو طلب صورة استخدم generate_image، ولو طلب فيديو استخدم generate_video، وقوله إنها ظهرت في الشات.';
 
     function setVoiceState(next, label, color){
       voiceMode.state = next;
@@ -1900,7 +1909,7 @@
 
     function closeVoiceMode(){
       voiceMode.open = false;
-      voiceMode.enroll = null;
+      voiceMode.enroll = null; voiceMode.classic = false; clearTimeout(voiceMode.cIdle);
       liveClose();
       voiceMode.turn++;
       ttsStop();
@@ -1949,6 +1958,7 @@
     }
 
     function sendVoiceMessage(text){
+      clearTimeout(voiceMode.cIdle);
       var turn = voiceMode.turn;
       voiceMode.sp = { cut:0, n:0 };
       ttsStart({
@@ -1959,7 +1969,7 @@
         },
         onEnd: function(){
           if (turn !== voiceMode.turn || !voiceMode.open) return;
-          setTimeout(function(){ if (turn === voiceMode.turn && voiceMode.open) { if (V2.liveMode && V2.wakeMode) enterStandby(); else startListening(); } }, 250);
+          setTimeout(function(){ if (turn === voiceMode.turn && voiceMode.open) { if (voiceMode.classic) listenClassic('blue'); else if (V2.liveMode && V2.wakeMode) enterStandby(); else startListening(); } }, 250);
         },
         onError: function(err){
           if (turn !== voiceMode.turn) return;
@@ -2098,6 +2108,7 @@
         setup.realtimeInputConfig = { automaticActivityDetection: { endOfSpeechSensitivity:'END_SENSITIVITY_LOW', silenceDurationMs: Math.max(450, (V2.endMs || 800) - 200), prefixPaddingMs:120 }, turnCoverage:'TURN_INCLUDES_ONLY_ACTIVITY' };
         setup.proactivity = { proactiveAudio: true };
         setup.contextWindowCompression = { slidingWindow: {} };
+        setup.sessionResumption = o.handle ? { handle: o.handle } : {};
         setup.tools = liveTools(o.search);
       } else if (o.level === 2) {
         setup.realtimeInputConfig = { automaticActivityDetection: { endOfSpeechSensitivity:'END_SENSITIVITY_LOW', silenceDurationMs:700 } };
@@ -2116,7 +2127,7 @@
       return new Promise(function(resolve, reject){
         var ws, done = false, timer;
         function fail(e){ if (done) return; done = true; clearTimeout(timer); try { ws.close(); } catch(_) {} reject(e); }
-        try { ws = new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(state.apiKey)); }
+        try { ws = new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(o.key || state.apiKey)); }
         catch (e) { reject(e); return; }
         timer = setTimeout(function(){ fail(new Error('الاتصال اتأخر (timeout)')); }, 12000);
         var q = Promise.resolve();
@@ -2141,30 +2152,41 @@
     }
 
     /* connects (or reuses) a Live session without touching the screen */
+    var liveBlock = {};
     async function startLive(){
       if (!state.apiKey) throw new Error('مفيش مفتاح');
       live.closing = false;
-      var models = await liveModelOrder(), lastErr = null;
-      for (var i = 0; i < models.length && i < 3; i++) {
-        for (var level = 0; level < 4; level++) {
-          if (!voiceMode.open) throw new Error('اتقفلت');
-          var withSearch = !!(V2.search && !live.noSearch && level <= 1);
-          try {
-            var ws = await liveOpen(models[i], { level:level, search:withSearch, handle: live.handle });
-            live.ws = ws; live.model = models[i]; live.ready = true; live.retries = 0; live.level = level;
-            V2.liveModelOk = models[i]; saveV2();
-            live.sendBuf = []; live.sendLen = 0; live.talk = false; live.pre = [];
-            liveResetPlayback();
-            return true;
-          } catch (e) {
-            lastErr = e;
-            if (withSearch && level === 1) live.noSearch = true;
-            if (/429|quota|RESOURCE_EXHAUSTED/i.test(e.message || '')) throw e;
+      var models = await liveModelOrder(), keys = ttsKeys(), lastErr = null, tried = 0, quotaHit = false;
+      for (var i = 0; i < models.length && i < 4; i++) {
+        for (var ki = 0; ki < keys.length; ki++) {
+          var bid = models[i] + '|' + keys[ki].slice(-6);
+          if (liveBlock[bid] > Date.now()) { quotaHit = true; continue; }
+          for (var level = 0; level < 4; level++) {
+            if (!voiceMode.open) throw new Error('اتقفلت');
+            var withSearch = !!(V2.search && !live.noSearch && level <= 1);
+            tried++;
+            try {
+              var ws = await liveOpen(models[i], { level:level, search:withSearch, handle: V2.wakeMode ? null : live.handle, key:keys[ki] });
+              live.ws = ws; live.model = models[i]; live.ready = true; live.retries = 0; live.level = level;
+              V2.liveModelOk = models[i]; saveV2();
+              live.sendBuf = []; live.sendLen = 0; live.talk = false; live.pre = [];
+              liveResetPlayback();
+              return true;
+            } catch (e) {
+              lastErr = e;
+              if (withSearch && level === 1) live.noSearch = true;
+              if (/quota|exceeded|exhausted|429|RESOURCE_EXHAUSTED/i.test(String((e && e.message) || ''))) {
+                liveBlock[bid] = Date.now() + 8 * 60000; quotaHit = true;   /* this model+key is out: try the next one, don't give up */
+                break;
+              }
+            }
           }
         }
       }
       live.handle = null;
-      throw lastErr || new Error('مفيش موديل لايف متاح');
+      var err = tried ? (lastErr || new Error('مفيش موديل لايف متاح')) : new Error('حصة اللايف خلصت دلوقتي');
+      err.quota = quotaHit;
+      throw err;
     }
     function ensureLive(){
       if (live.ready && live.ws && live.ws.readyState === 1) return Promise.resolve(true);
@@ -2304,9 +2326,9 @@
         } else if (fc.name === 'end_conversation') {
           live.endAfter = true;
           out.response = { result:{ ok:true } };
-        } else if (fc.name === 'web_search' || fc.name === 'youtube_search' || fc.name === 'read_webpage') {
-          if (voiceMode.live) setVoiceState('thinking', 'بدوّر على النت...', 'blue');
-          var wr = await execWebTool(fc.name, a);
+        } else if (fc.name === 'web_search' || fc.name === 'youtube_search' || fc.name === 'read_webpage' || fc.name === 'generate_image' || fc.name === 'generate_video') {
+          if (voiceMode.live) setVoiceState('thinking', fc.name === 'generate_image' ? 'بعمل الصورة...' : (fc.name === 'generate_video' ? 'بعمل الفيديو (ممكن ياخد دقيقة)...' : 'بدوّر على النت...'), 'blue');
+          var wr = await execWebTool(fc.name, a, { live:true });
           out.response = wr.error ? { error: wr.error } : { result: wr };
         } else {
           out.response = { error:'أداة غير معروفة' };
@@ -2474,10 +2496,13 @@
       if (!voiceMode.live) return;   /* a pre-warmed idle session closed: reconnect on demand */
       liveFlushTurn();
       if (V2.wakeMode) { toast('الاتصال اتقطع — رجعت لوضع الانتظار.'); closeDialogue('lost'); return; }
-      if (live.retries < 2) {
+      if (live.retries < 6) {
         live.retries++;
         setVoiceState('thinking', 'الاتصال اتقطع.. برجّعه', 'blue');
-        ensureLive().then(function(){ liveResetPlayback(); setVoiceState('listening', 'سامعك.. اتكلم', 'blue'); }).catch(function(err){ liveGiveUp(err); });
+        setTimeout(function(){
+          if (!voiceMode.open || !voiceMode.live) return;
+          ensureLive().then(function(){ liveResetPlayback(); setVoiceState('listening', 'سامعك.. اتكلم', 'blue'); }).catch(function(err){ liveOnClose({ code:0, reason:String((err && err.message) || '') }); });
+        }, Math.min(800 * live.retries, 4000));
       } else {
         liveGiveUp(new Error('closed ' + (ev && ev.code) + (ev && ev.reason ? ' — ' + ev.reason : '')));
       }
@@ -2543,6 +2568,7 @@
 
     function enterStandby(){
       liveClearTimers();
+      clearTimeout(voiceMode.cIdle); voiceMode.classic = false;
       voiceMode.live = false; voiceMode.phase = 'standby';
       resetVad();
       mic.echoUntil = Date.now() + 300;
@@ -2576,9 +2602,7 @@
       catch (err) {
         console.error('live connect failed', err);
         if (!voiceMode.open) return;
-        toast('مقدرتش أفتح المكالمة اللايف (' + errShort(err) + ')');
-        if (o.opening) { voiceMode.phase = 'idle'; voiceMode.live = false; sendVoiceMessage(o.opening); }
-        else enterStandby();
+        startClassicDialogue(o, err);
         return;
       }
       if (!voiceMode.open || turn !== voiceMode.turn) return;
@@ -2602,6 +2626,38 @@
         setVoiceState('listening', 'سامعك.. اتكلم', 'blue');
         armIdle(V2.idleSec || 12);
       }
+    }
+
+    var classicNoted = false;
+    function startClassicDialogue(o, err){
+      if (!voiceMode.open) return;
+      voiceMode.classic = true; voiceMode.live = false; voiceMode.phase = o.mode;
+      if (!classicNoted) { classicNoted = true; toast('اللايف مش متاح دلوقتي' + (err && err.quota ? ' (الحصة)' : '') + ' — كمّلت بالوضع العادي، وهرجع للايف لوحدي بعد شوية.'); setTimeout(function(){ classicNoted = false; }, 600000); }
+      if (o.mode === 'cmd') {
+        ttsStart({
+          onChunk: function(){ setVoiceState('speaking', 'نعم؟ ندهتلي..', 'green'); },
+          onEnd: function(){ if (voiceMode.open && voiceMode.classic) listenClassic('green'); },
+          onError: function(){}
+        });
+        ttsEnqueue('نعم؟ ندهتلي.. أقدر أساعدك بإيه؟'); ttsFinish();
+      } else if (o.opening) {
+        if (els.voiceTranscript) els.voiceTranscript.textContent = o.opening;
+        sendVoiceMessage(o.opening);
+      } else listenClassic('blue');
+    }
+    function listenClassic(color){
+      if (!voiceMode.open) return;
+      startListening();
+      setVoiceState('listening', color === 'green' ? 'قول أمرك.. أنا سامعك' : 'سامعك.. كمّل كلامك', color);
+      armClassicIdle(color === 'green' ? (V2.cmdIdleSec || 10) : (V2.idleSec || 12));
+    }
+    function armClassicIdle(sec){
+      clearTimeout(voiceMode.cIdle);
+      voiceMode.cIdle = setTimeout(function(){
+        if (!voiceMode.open || !voiceMode.classic) return;
+        if (voiceMode.state === 'listening' && !mic.speaking) { voiceMode.classic = false; earcon('end'); enterStandby(); }
+        else armClassicIdle(4);
+      }, sec * 1000);
     }
 
     function closeDialogue(reason){
@@ -2652,7 +2708,24 @@
       { name:'read_webpage', description:'يفتح أي رابط ويقرا محتواه (مقال، صفحة موقع، فيديو يوتيوب: العنوان والوصف).',
         parameters:{ type:'OBJECT', properties:{ url:{ type:'STRING' }, max_chars:{ type:'INTEGER', description:'اختياري: أقصى عدد حروف (الافتراضي 9000)' } }, required:['url'] } }
     ];
-    var WEB_PROMPT = '\n\n## صلاحية الإنترنت الكاملة\nعندك وصول كامل للإنترنت عن طريق الأدوات: web_search (بحث جوجل)، youtube_search (بحث يوتيوب)، read_webpage (قراءة أي رابط). استخدمها بجرأة ومن غير ما تستأذن كل ما السؤال عن حاجة مش متأكد منها أو حديثة (مسلسل، فيلم، شخصية، خبر، سعر، إصدار مكتبة…) أو لما المستخدم يقولك "دوّر". ممنوع تقول "معنديش صلاحية" أو "مقدرش أبحث". لو أول نتيجة مش كفاية ابحث بصيغة تانية (عربي وإنجليزي) وافتح الصفحات المهمة، وبعدين اشرح النتيجة بوضوح واذكر المصادر والروابط.';
+    WEB_FUNCS.push({ name:'generate_image', description:'ينشئ صورة بأعلى جودة من وصف المستخدم (شخصيات، تفاصيل، ستايل، إضاءة، مقاس، نص جوه الصورة…) أو يعدّل صورة مرفقة/آخر صورة اتعملت، ويعرضها في الشات. استخدمه فورًا لأي طلب صورة أو رسم أو لوجو أو بوستر أو تصميم أو غلاف أو تعديل صورة.',
+      parameters:{ type:'OBJECT', properties:{
+        prompt:{ type:'STRING', description:'وصف كامل بكل تفاصيل المستخدم بدون حذف أي حاجة (الشخصيات، العدد، الألوان، المكان، الستايل، النص المطلوب كتابته). في التعديل: اوصف التغيير المطلوب بس.' },
+        aspect_ratio:{ type:'STRING', description:'1:1 أو 16:9 أو 9:16 أو 4:3 أو 3:4 أو 3:2 أو 2:3 أو 21:9 (الافتراضي 1:1)' },
+        style:{ type:'STRING', description:'اختياري: واقعي فوتوغرافي، أنمي، كرتون 3D، رسم زيتي، لوجو، فلات…' },
+        count:{ type:'INTEGER', description:'عدد النسخ المختلفة من 1 لـ 4 (الافتراضي 1)' },
+        quality:{ type:'STRING', description:'standard أو ultra (4K لو المستخدم عايز أعلى جودة ممكنة)' },
+        negative:{ type:'STRING', description:'اختياري: حاجات ممنوع تظهر في الصورة' },
+        edit_previous:{ type:'BOOLEAN', description:'true لو المستخدم بيطلب تعديل على آخر صورة اتعملت (من غير ما يرفق صورة)' } }, required:['prompt'] } });
+    WEB_FUNCS.push({ name:'generate_video', description:'ينشئ فيديو من وصف المستخدم: فيديو حقيقي بـ Veo لو الحساب بيدعمه، وإلا فيديو سينمائي متحرك بلقطات متعددة وموسيقى. استخدمه لأي طلب فيديو أو مقطع أو ريلز أو إعلان أو أنيميشن.',
+      parameters:{ type:'OBJECT', properties:{
+        prompt:{ type:'STRING', description:'وصف الفيديو بكل التفاصيل: الشخصيات، الأحداث، المكان، الحركة، الستايل، الإضاءة' },
+        duration_seconds:{ type:'INTEGER', description:'المدة بالثواني من 4 لـ 20 (الافتراضي 8)' },
+        aspect_ratio:{ type:'STRING', description:'16:9 أو 9:16 (ريلز/تيك توك) أو 1:1' },
+        style:{ type:'STRING', description:'اختياري: سينمائي، أنمي، كرتون، واقعي…' },
+        title:{ type:'STRING', description:'اختياري: عنوان يظهر في أول الفيديو' },
+        with_music:{ type:'BOOLEAN', description:'موسيقى خلفية هادية (الافتراضي true)' } }, required:['prompt'] } });
+    var WEB_PROMPT = '\n\n## إنشاء الصور\nلو طلب فيديو أو مقطع أو ريلز أو إعلان أو أنيميشن: استخدم generate_video فورًا بوصف كامل ومدة 6-12 ثانية والمقاس المناسب (9:16 للريلز)، وبعدها اشرح اللي اتعمل بصراحة (لو اتعمل من لقطات متحركة مش توليد حقيقي قول كده). ولو طلب تعديل على صورة مرفقة أو على آخر صورة اتعملت استخدم generate_image بـ edit_previous. ولو طلب كذا نسخة حط count. ولو المستخدم طلب صورة أو رسم أو لوجو أو بوستر أو غلاف أو تصميم: استخدم generate_image فورًا من غير أسئلة كتير، وحط في prompt كل تفاصيله بالحرف (العناصر، العدد، الألوان، الستايل، الإضاءة، المقاس، أي نص يتكتب على الصورة). لو في تفصيلة ناقصة اختار أحسن اختيار بنفسك. بعد ما تتعمل اشرح له باختصار اللي اتعمل واعرض عليه تعديلات. وتقدر تعمل أكتر من صورة بنداءات متتالية لو طلب كذا نسخة.\n\n## صلاحية الإنترنت الكاملة\nعندك وصول كامل للإنترنت عن طريق الأدوات: web_search (بحث جوجل)، youtube_search (بحث يوتيوب)، read_webpage (قراءة أي رابط). استخدمها بجرأة ومن غير ما تستأذن كل ما السؤال عن حاجة مش متأكد منها أو حديثة (مسلسل، فيلم، شخصية، خبر، سعر، إصدار مكتبة…) أو لما المستخدم يقولك "دوّر". ممنوع تقول "معنديش صلاحية" أو "مقدرش أبحث". لو أول نتيجة مش كفاية ابحث بصيغة تانية (عربي وإنجليزي) وافتح الصفحات المهمة، وبعدين اشرح النتيجة بوضوح واذكر المصادر والروابط.';
 
     function nativeHttp(){ var P = window.Capacitor && window.Capacitor.Plugins; return P && P.CapacitorHttp ? P.CapacitorHttp : null; }
     var WEB_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
@@ -2834,11 +2907,13 @@
       }
     }
 
-    async function execWebTool(name, args){
+    async function execWebTool(name, args, ctx){
       var out;
       if (name === 'web_search') out = await toolWebSearch(args || {});
       else if (name === 'youtube_search') out = await toolYoutubeSearch(args || {});
       else if (name === 'read_webpage') out = await toolReadWebpage(args || {});
+      else if (name === 'generate_image') out = await toolGenerateImage(args || {}, ctx);
+      else if (name === 'generate_video') out = await toolGenerateVideo(args || {}, ctx);
       else return { error:'أداة غير معروفة: ' + name };
       var json = JSON.stringify(out);
       if (json.length > 14000) { out = { truncated:true, data:json.slice(0, 14000) }; }
@@ -2846,15 +2921,16 @@
     }
 
     /* ================= voice focus: M-G only listens to YOUR voice ================= */
-    /* A small on-device speaker matcher: during a 30-second training it learns your voice
-       (spectral shape + pitch). Afterwards only audio that matches it is transcribed or sent,
-       so TV, passers-by, car noise and other people are ignored, even when they are louder
-       than you. It's a lightweight matcher, not bank-grade biometrics. */
+    /* On-device speaker model: during a short training it learns a "codebook" of how YOUR voice
+       sounds (frame-level spectral shapes + pitch). Audio that doesn't fit the codebook is ignored.
+       It keeps learning from confident matches and from your corrections (tapping the circle when it
+       wrongly ignored you). Lightweight matcher, not bank-grade biometrics. */
     var VP_KEY = 'mgai_voiceprint_v1';
     var voiceprint = null;
-    try { voiceprint = JSON.parse(localStorage.getItem(VP_KEY) || 'null'); if (!voiceprint || !voiceprint.mean) voiceprint = null; } catch(e) { voiceprint = null; }
+    try { voiceprint = JSON.parse(localStorage.getItem(VP_KEY) || 'null'); if (!voiceprint || !voiceprint.cb || !voiceprint.pool) voiceprint = null; } catch(e) { voiceprint = null; }
     function saveVoiceprint(){ try { if (voiceprint) localStorage.setItem(VP_KEY, JSON.stringify(voiceprint)); else localStorage.removeItem(VP_KEY); } catch(e) {} }
     var VP = { ready:false };
+    var vpLastReject = null;
 
     function vpInit(){
       if (VP.ready) return;
@@ -2899,7 +2975,7 @@
         }
       }
     }
-    /* x: Float32Array at 16 kHz -> { mean[19], std[19], f0, nv }  (with light noise subtraction) */
+    /* x: Float32Array at 16 kHz -> { fr: Float32Array(nv*19) cepstra of voiced frames, f0, nv } (with light noise subtraction) */
     function vpFeatures(x){
       vpInit();
       var n = x.length, i, f, j, c;
@@ -2920,28 +2996,25 @@
         }
       }
       var order = Array.prototype.slice.call(en).map(function(v, idx){ return idx; }).sort(function(a, b){ return en[a] - en[b]; });
-      /* noise estimate: the quietest 15% of frames */
       var nq = Math.max(3, Math.floor(nf * 0.15)), noise = new Float32Array(nm);
       for (i = 0; i < nq; i++) for (j = 0; j < nm; j++) noise[j] += mp[order[i] * nm + j] / nq;
-      /* only subtract when the segment really contains quiet frames (>= ~10 dB below the speech) */
-      var eq = 0, es = 0;
+      var eq = 0, es = 0, topStart = Math.floor(nf * 0.6), topN = 0;
       for (i = 0; i < nq; i++) eq += en[order[i]] / nq;
-      var topStart = Math.floor(nf * 0.6), topN = 0;
       for (i = topStart; i < nf; i++) { es += en[order[i]]; topN++; }
       es = es / Math.max(1, topN);
-      var useNoise = eq < 0.1 * es;
-      if (!useNoise) noise.fill(0);
+      if (!(eq < 0.1 * es)) noise.fill(0);
       var thr = Math.max(en[order[Math.floor(nf * 0.4)]], 0.004);
-      var NC = 19, sum = new Float64Array(NC), sq = new Float64Array(NC), cnt = 0, f0s = [], logm = new Float32Array(nm);
+      var NC = 19, rows = [], f0s = [], logm = new Float32Array(nm);
       for (f = 0; f < nf; f++) {
         if (en[f] < thr) continue;
         for (j = 0; j < nm; j++) { var p = mp[f * nm + j]; logm[j] = Math.log(Math.max(p - 0.8 * noise[j], 0.2 * p) + 1e-9); }
+        var vec = new Float32Array(NC);
         for (c = 1; c <= NC; c++) {
           var v = 0, row = VP.dct[c];
           for (j = 0; j < VP.nb; j++) v += row[j] * logm[j];
-          sum[c - 1] += v; sq[c - 1] += v * v;
+          vec[c - 1] = v;
         }
-        cnt++;
+        rows.push(vec);
         var o2 = f * 160, r0 = en[f], best = 0, bl = 0;
         if (r0 > 0) {
           for (var lag = 40; lag <= 228; lag++) {
@@ -2953,36 +3026,110 @@
           if (best > 0.5 && bl) f0s.push(16000 / bl);
         }
       }
-      if (cnt < 8) return null;
-      var mean = [], std = [];
-      for (i = 0; i < NC; i++) { var m = sum[i] / cnt; mean.push(m); std.push(Math.sqrt(Math.max(0, sq[i] / cnt - m * m))); }
+      if (rows.length < 8) return null;
+      var fr = new Float32Array(rows.length * NC);
+      for (i = 0; i < rows.length; i++) fr.set(rows[i], i * NC);
       var f0 = 0;
       if (f0s.length >= 6) { f0s.sort(function(a, b){ return a - b; }); f0 = f0s[Math.floor(f0s.length / 2)]; }
-      return { mean:mean, std:std, f0:f0, nv:cnt };
+      return { fr:fr, f0:f0, nv:rows.length };
     }
-    function vpDist(ft, vp){
-      var d = 0, n = ft.mean.length;
-      for (var i = 0; i < n; i++) { var z = (ft.mean[i] - vp.mean[i]) / vp.sd[i]; d += z * z; }
-      return Math.sqrt(d / n);
-    }
-    function vpBuild(segs){
-      var n = segs.length, NC = segs[0].mean.length, i, k;
-      function centroid(skip){
-        var c = new Array(NC).fill(0), m = 0;
-        for (k = 0; k < n; k++) { if (k === skip) continue; m++; for (i = 0; i < NC; i++) c[i] += segs[k].mean[i]; }
-        return c.map(function(v){ return v / m; });
+
+    /* ---- codebook (k-means) ---- */
+    function mulberry(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+    function vpKmeans(Z, n, d, K, iters){
+      var rnd = mulberry(1234567), cb = new Float32Array(K * d), i, k, j;
+      var first = Math.floor(rnd() * n);
+      for (j = 0; j < d; j++) cb[j] = Z[first * d + j];
+      var dist = new Float32Array(n).fill(1e30);
+      for (k = 1; k < K; k++) {
+        var tot = 0;
+        for (i = 0; i < n; i++) {
+          var dd = 0; for (j = 0; j < d; j++) { var df = Z[i * d + j] - cb[(k - 1) * d + j]; dd += df * df; }
+          if (dd < dist[i]) dist[i] = dd;
+          tot += dist[i];
+        }
+        var r = rnd() * tot, pick = n - 1, acc = 0;
+        for (i = 0; i < n; i++) { acc += dist[i]; if (acc >= r) { pick = i; break; } }
+        for (j = 0; j < d; j++) cb[k * d + j] = Z[pick * d + j];
       }
-      var cen = centroid(-1), inter = new Array(NC).fill(0), intra = new Array(NC).fill(0);
-      for (k = 0; k < n; k++) for (i = 0; i < NC; i++) { inter[i] += Math.pow(segs[k].mean[i] - cen[i], 2); intra[i] += segs[k].std[i]; }
-      var sd = [];
-      for (i = 0; i < NC; i++) sd.push(Math.max(Math.sqrt(inter[i] / n), 0.3 * intra[i] / n, 0.4));
-      var f0s = segs.map(function(s){ return s.f0; }).filter(function(v){ return v > 0; }).sort(function(a, b){ return a - b; });
-      var f0 = f0s.length ? f0s[Math.floor(f0s.length / 2)] : 0;
-      var vp = { mean:cen, sd:sd, f0:f0, thr:2, n:n, t:Date.now() };
+      var asg = new Int32Array(n), sums = new Float32Array(K * d), cnt = new Int32Array(K);
+      for (var it = 0; it < iters; it++) {
+        sums.fill(0); cnt.fill(0);
+        for (i = 0; i < n; i++) {
+          var bk = 0, bd = 1e30;
+          for (k = 0; k < K; k++) { var s = 0; for (j = 0; j < d; j++) { var q = Z[i * d + j] - cb[k * d + j]; s += q * q; } if (s < bd) { bd = s; bk = k; } }
+          asg[i] = bk; cnt[bk]++;
+          for (j = 0; j < d; j++) sums[bk * d + j] += Z[i * d + j];
+        }
+        for (k = 0; k < K; k++) {
+          if (cnt[k] > 0) for (j = 0; j < d; j++) cb[k * d + j] = sums[k * d + j] / cnt[k];
+          else { var rp = Math.floor(rnd() * n); for (j = 0; j < d; j++) cb[k * d + j] = Z[rp * d + j]; }
+        }
+      }
+      return cb;
+    }
+    function vpScoreZ(Z, n, d, cb, K){
+      var ds = new Float32Array(n), i, k, j;
+      for (i = 0; i < n; i++) {
+        var bd = 1e30;
+        for (k = 0; k < K; k++) { var s = 0; for (j = 0; j < d; j++) { var q = Z[i * d + j] - cb[k * d + j]; s += q * q; } if (s < bd) bd = s; }
+        ds[i] = bd / d;
+      }
+      var arr = Array.prototype.slice.call(ds).sort(function(a, b){ return a - b; });
+      var keep = Math.max(1, Math.floor(arr.length * 0.85)), sum = 0;
+      for (i = 0; i < keep; i++) sum += arr[i];
+      return sum / keep;   /* trimmed mean: a few noisy frames can't ruin it */
+    }
+    function vpNormalise(frames, n, d, mu, sd){
+      var Z = new Float32Array(n * d);
+      for (var i = 0; i < n; i++) for (var j = 0; j < d; j++) Z[i * d + j] = (frames[i * d + j] - mu[j]) / sd[j];
+      return Z;
+    }
+    function poolToF32(pool){
+      var d = 19, a = new Float32Array(pool.length * d);
+      for (var i = 0; i < pool.length; i++) for (var j = 0; j < d; j++) a[i * d + j] = pool[i][j];
+      return a;
+    }
+    function poolFromFrames(fr, take, rnd){
+      var d = 19, n = fr.length / d, idx = [], i;
+      for (i = 0; i < n; i++) idx.push(i);
+      if (take < n) { for (i = n - 1; i > 0; i--) { var j = Math.floor(rnd() * (i + 1)); var t = idx[i]; idx[i] = idx[j]; idx[j] = t; } idx = idx.slice(0, take); }
+      return idx.map(function(ix){ var row = []; for (var c = 0; c < d; c++) row.push(Math.round(fr[ix * d + c] * 20) / 20); return row; });
+    }
+    function vpFit(pool){
+      var d = 19, n = pool.length, F = poolToF32(pool), mu = new Array(d).fill(0), sd = new Array(d).fill(0), i, j;
+      for (i = 0; i < n; i++) for (j = 0; j < d; j++) mu[j] += F[i * d + j] / n;
+      for (i = 0; i < n; i++) for (j = 0; j < d; j++) sd[j] += Math.pow(F[i * d + j] - mu[j], 2) / n;
+      sd = sd.map(function(v){ return Math.max(Math.sqrt(v), 0.3); });
+      var K = Math.max(6, Math.min(24, Math.floor(n / 25)));
+      var Z = vpNormalise(F, n, d, mu, sd);
+      var cb = vpKmeans(Z, n, d, K, 12);
+      return { mu:mu, sd:sd, K:K, cb:Array.prototype.slice.call(cb) };
+    }
+    function vpBuild(segs, prevPool, noisy){
+      var rnd = mulberry(42), d = 19, pool = [], i, k;
+      var perSeg = Math.max(40, Math.floor(700 / Math.max(1, segs.length + (prevPool ? 2 : 0))));
+      if (prevPool) pool = pool.concat(prevPool.length > perSeg * 2 ? prevPool.slice(0, perSeg * 2) : prevPool);
+      segs.forEach(function(s){ pool = pool.concat(poolFromFrames(s.fr, perSeg, rnd)); });
+      (noisy || []).forEach(function(s){ pool = pool.concat(poolFromFrames(s.fr, Math.floor(perSeg * 0.6), rnd)); });
+      if (pool.length > 800) pool = pool.slice(pool.length - 800);
+      var model = vpFit(pool);
+      /* calibration: how far is a sentence the model has NOT seen? (leave-one-sentence-out) */
       var ds = [];
-      for (k = 0; k < n; k++) ds.push(vpDist(segs[k], { mean:centroid(k), sd:sd }));
-      vp.thr = Math.max(1.8, Math.max.apply(null, ds) * 1.4);
-      return vp;
+      if (segs.length >= 3) {
+        for (k = 0; k < segs.length; k++) {
+          var others = (prevPool ? prevPool.slice(0, perSeg * 2) : []);
+          segs.forEach(function(s, kk){ if (kk !== k) others = others.concat(poolFromFrames(s.fr, perSeg, rnd)); });
+          var mo = vpFit(others);
+          var nk = segs[k].fr.length / d;
+          var Zk = vpNormalise(segs[k].fr, nk, d, mo.mu, mo.sd);
+          ds.push(vpScoreZ(Zk, nk, d, new Float32Array(mo.cb), mo.K));
+        }
+      }
+      var f0s = segs.map(function(s){ return s.f0; }).filter(function(v){ return v > 0; }).sort(function(a, b){ return a - b; });
+      var f0 = f0s.length ? f0s[Math.floor(f0s.length / 2)] : (prevPool && voiceprint ? voiceprint.f0 : 0);
+      var thr = ds.length ? Math.max(Math.max.apply(null, ds) * 1.3, 0.5) : 1.2;
+      return { ver:2, mu:model.mu, sd:model.sd, K:model.K, cb:model.cb, pool:pool, f0:f0, thr:thr, n:segs.length + (voiceprint && prevPool ? voiceprint.n : 0), upd:0, t:Date.now() };
     }
     function framesToF32(frames){
       var total = 0, i;
@@ -2991,21 +3138,53 @@
       for (i = 0; i < frames.length; i++) { all.set(frames[i], off); off += frames[i].length; }
       return all;
     }
+    function vpRebuildLater(){
+      setTimeout(function(){
+        if (!voiceprint) return;
+        try { var m = vpFit(voiceprint.pool); voiceprint.mu = m.mu; voiceprint.sd = m.sd; voiceprint.K = m.K; voiceprint.cb = m.cb; saveVoiceprint(); } catch(e) {}
+      }, 50);
+    }
+    function vpLearn(fr, take){
+      if (!voiceprint) return;
+      var rnd = Math.random, add = poolFromFrames(fr, take, rnd);
+      voiceprint.pool = voiceprint.pool.concat(add);
+      if (voiceprint.pool.length > 800) voiceprint.pool = voiceprint.pool.slice(voiceprint.pool.length - 800);
+      voiceprint.upd = (voiceprint.upd || 0) + 1;
+    }
     /* does this audio sound like the enrolled user? (no voiceprint => everything passes) */
     function vpVerify(frames, sr, o){
       if (!voiceprint) return { ok:true, enrolled:false };
       o = o || {};
       var ft = vpFeatures(downsampleTo16k(framesToF32(frames), sr));
-      if (!ft) return { ok:false, enrolled:true, short:true, d:99 };
-      var strict = V2.vpStrict || 'balanced';
-      var mult = ({ lenient:1.35, balanced:1, strict:0.8 })[strict] * (o.slack || 1);
+      if (!ft) return { ok:false, enrolled:true, short:true, d:99, thr:1 };
+      var d = 19, Z = vpNormalise(ft.fr, ft.nv, d, voiceprint.mu, voiceprint.sd);
+      var score = vpScoreZ(Z, ft.nv, d, new Float32Array(voiceprint.cb), voiceprint.K);
+      var strict = V2.vpStrict || 'lenient';
+      var mult = ({ lenient:1.45, balanced:1.15, strict:0.9 })[strict] * (o.slack || 1);
       var shortBoost = 1 + 0.5 * Math.max(0, (40 - ft.nv) / 40);
-      var d = vpDist(ft, voiceprint), ok = d <= voiceprint.thr * mult * shortBoost;
+      var limit = voiceprint.thr * mult * shortBoost, ok = score <= limit;
       if (ok && voiceprint.f0 > 0 && ft.f0 > 0) {
-        var tol = ({ lenient:0.4, balanced:0.3, strict:0.22 })[strict] * (o.slack ? 1.15 : 1);
+        var tol = ({ lenient:0.42, balanced:0.34, strict:0.25 })[strict] * (o.slack ? 1.15 : 1);
         if (Math.abs(Math.log(ft.f0 / voiceprint.f0)) > tol) ok = false;
       }
-      return { ok:ok, enrolled:true, d:d, thr:voiceprint.thr * mult * shortBoost, f0:ft.f0 };
+      if (ok && o.learn !== false && score < limit * 0.55 && ft.nv >= 30 && Math.random() < 0.5) {
+        vpLearn(ft.fr, 25);
+        if ((voiceprint.upd % 8) === 0) vpRebuildLater();
+        if ((voiceprint.upd % 4) === 0) saveVoiceprint();
+      }
+      if (!ok && ft.nv >= 20) vpLastReject = { fr:ft.fr, t:Date.now() };
+      return { ok:ok, enrolled:true, d:score, thr:limit, f0:ft.f0 };
+    }
+    /* "that was me": called when you tap the circle right after it ignored you */
+    function vpAcceptLastReject(){
+      if (!voiceprint || !vpLastReject || Date.now() - vpLastReject.t > 40000) return false;
+      vpLearn(vpLastReject.fr, 80);
+      voiceprint.thr = voiceprint.thr * 1.15;
+      vpLastReject = null;
+      var m = vpFit(voiceprint.pool); voiceprint.mu = m.mu; voiceprint.sd = m.sd; voiceprint.K = m.K; voiceprint.cb = m.cb;
+      saveVoiceprint();
+      toast('🧠 اتعلمت إن ده صوتك. هبقى أسمعك أحسن.');
+      return true;
     }
 
     /* ---- training ---- */
@@ -3015,14 +3194,24 @@
       'قول: «اضبطلي منبه الساعة سبعة ونص الصبح»',
       'قول: «دوّرلي على مسلسل كرتون قديم»',
       'قول بصوت واطي شوية: «أنا بكلمك من غير ما أعلّي صوتي»',
-      'قول: «Hello M-G, can you hear me clearly?»'
+      'قول: «Hello M-G, can you hear me clearly?»',
+      'قول: «قولي حالة الجو إيه النهارده وهتمطر ولا لأ»',
+      'قول: «شغّللي أي حاجة حلوة أسمعها دلوقتي»'
     ];
-    function openEnrollment(){
+    var VP_PROMPTS_MORE = [
+      'قول: «إم جي، عايز أسألك سؤال»',
+      'قول بصوتك وإنت متكلم عادي: «النهارده يوم طويل ومحتاج أخلّص شغل كتير»',
+      'قول: «افتحلي يوتيوب وابحثلي عن مسلسل قديم»',
+      'قول: «إم جي، ابعتلي تذكير بعد ساعة»',
+      'قول بصوت واطي: «أنا قريب منك ومش محتاج أزعق»'
+    ];
+    function openEnrollment(add){
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('الجهاز مش بيدعم الميكروفون هنا.'); return; }
       if (voiceMode.open) closeVoiceMode();
       getAudioCtx();
       voiceMode.open = true; voiceMode.paused = false; voiceMode.turn++;
-      voiceMode.enroll = { i:0, segs:[] };
+      var more = !!(add === true && voiceprint);
+      voiceMode.enroll = { i:0, segs:[], add:more, prompts: more ? VP_PROMPTS_MORE : VP_PROMPTS };
       els.voiceOverlay.hidden = false;
       requestAnimationFrame(function(){ els.voiceOverlay.classList.add('open'); });
       closeSettings();
@@ -3035,32 +3224,45 @@
     function enrollPrompt(){
       var e = voiceMode.enroll; if (!e || !voiceMode.open) return;
       resetVad(); mic.echoUntil = Date.now() + 250;
-      setVoiceState('enroll', 'تدريب ' + (e.i + 1) + ' من ' + VP_PROMPTS.length + ' — اتكلم بعد ما تقرا الجملة', 'blue');
-      if (els.voiceTranscript) els.voiceTranscript.textContent = VP_PROMPTS[e.i];
+      setVoiceState('enroll', 'تدريب ' + (e.i + 1) + ' من ' + e.prompts.length + ' — اتكلم بعد ما تقرا الجملة', 'blue');
+      if (els.voiceTranscript) els.voiceTranscript.textContent = e.prompts[e.i];
     }
     function handleEnrollSegment(frames, voiced, sr){
       var e = voiceMode.enroll; if (!e) return;
       if (voiced < 1000) { setVoiceState('enroll', 'قصيرة شوية.. قولها تاني وكمّل الجملة كلها', 'blue'); return; }
       var ft = vpFeatures(downsampleTo16k(framesToF32(frames), sr));
       if (!ft) { setVoiceState('enroll', 'مسمعتكش كويس.. قرّب شوية وقولها تاني', 'blue'); return; }
-      e.segs.push(ft); e.i++;
+      e.segs.push(ft);
+      try {   /* the same sentence again with synthetic background noise, so your voice is also learned "in a crowd" */
+        var x16 = downsampleTo16k(framesToF32(frames), sr), ss = 0;
+        for (var q = 0; q < x16.length; q++) ss += x16[q] * x16[q];
+        var amp = Math.sqrt(ss / x16.length) * 0.55, nz = new Float32Array(x16.length), seed = 7 + e.i * 13;
+        for (q = 0; q < nz.length; q++) { seed = (seed * 1664525 + 1013904223) >>> 0; var u1 = (seed / 4294967296) - 0.5; seed = (seed * 1664525 + 1013904223) >>> 0; var u2 = (seed / 4294967296) - 0.5; nz[q] = x16[q] + (u1 + u2) * amp * (q > 0 ? 1 : 1) + (q ? 0.5 * (nz[q - 1] - x16[q - 1]) : 0); }
+        var ft2 = vpFeatures(nz); if (ft2) (e.noisy = e.noisy || []).push(ft2);
+      } catch(err) {}
+      e.i++;
       earcon('ok');
-      if (e.i < VP_PROMPTS.length) { setTimeout(enrollPrompt, 500); return; }
-      voiceprint = vpBuild(e.segs);
-      saveVoiceprint();
-      var g = voiceprint.f0 > 0 ? (voiceprint.f0 < 165 ? 'male' : 'female') : '';
-      if (g && !V2.gender) { V2.gender = g; saveV2(); var gi = document.getElementById('genderInput'); if (gi) gi.value = g; }
-      voiceMode.enroll = null;
-      setVoiceState('idle', '✅ اتسجّل صوتك. من دلوقتي بيركّز عليك بس.');
-      if (els.voiceTranscript) els.voiceTranscript.textContent = g ? ('صوتك أقرب لـ ' + (g === 'male' ? 'ولد' : 'بنت') + ' — غيّرها من الإعدادات لو غلط') : '';
-      updateVpInfo();
-      setTimeout(function(){ if (voiceMode.open && !voiceMode.enroll) closeVoiceMode(); }, 2600);
+      if (e.i < e.prompts.length) { setTimeout(enrollPrompt, 500); return; }
+      setVoiceState('idle', 'بحلّل صوتك...');
+      setTimeout(function(){
+        var prev = e.add && voiceprint ? voiceprint.pool : null;
+        voiceprint = vpBuild(e.segs, prev, e.noisy);
+        saveVoiceprint();
+        var g = voiceprint.f0 > 0 ? (voiceprint.f0 < 165 ? 'male' : 'female') : '';
+        if (g && !V2.gender) { V2.gender = g; saveV2(); var gi = document.getElementById('genderInput'); if (gi) gi.value = g; }
+        voiceMode.enroll = null;
+        setVoiceState('idle', '✅ اتسجّل صوتك. من دلوقتي بيركّز عليك بس.');
+        if (els.voiceTranscript) els.voiceTranscript.textContent = (g && !e.add) ? ('صوتك أقرب لـ ' + (g === 'male' ? 'ولد' : 'بنت') + ' — غيّرها من الإعدادات لو غلط') : '';
+        updateVpInfo();
+        setTimeout(function(){ if (voiceMode.open && !voiceMode.enroll) closeVoiceMode(); }, 2600);
+      }, 60);
     }
     function updateVpInfo(){
       var el = document.getElementById('vpInfo'); if (!el) return;
       el.textContent = voiceprint
-        ? ('✅ بصمة صوتك متسجّلة (' + voiceprint.n + ' عيّنات، ' + new Date(voiceprint.t).toLocaleDateString('ar-EG') + '). M-G بيتجاهل أي صوت مش صوتك.')
-        : 'لسه مفيش بصمة. من غيرها بيسمع أي صوت حواليك (تليفزيون، ناس، عربيات). التدريب بياخد نص دقيقة بس.';
+        ? ('✅ بصمة صوتك متسجّلة (' + voiceprint.n + ' جمل، اتعلّم من ' + (voiceprint.upd || 0) + ' تحسين تلقائي). بيتجاهل أي صوت مش صوتك. لو تجاهلك غلط اضغط على الدايرة وهو رمادي وهيتعلّم من ده.')
+        : 'لسه مفيش بصمة. من غيرها بيسمع أي صوت حواليك (تليفزيون، ناس، عربيات). التدريب بياخد دقيقة بس.';
+      var more = document.getElementById('vpMoreBtn'); if (more) more.style.display = voiceprint ? '' : 'none';
     }
     function genderNote(){
       if (V2.gender === 'male') return '\n\nالمستخدم ولد (ذكر): خاطبه دايمًا بصيغة المذكر (إنت، جاهز، عايز…).';
@@ -3106,6 +3308,491 @@
           if (live.speaking && voiceMode.live && isStopPhrase(text)) { toast('⏸ وقفته'); liveInterrupt(); }
         }).catch(function(){});
       }
+    }
+
+    /* ================= image creation (best available model, never gives up) ================= */
+    var IMG_DB = 'mgai_img', imgDbPromise = null;
+    function imgDb(){
+      if (imgDbPromise) return imgDbPromise;
+      imgDbPromise = new Promise(function(resolve){
+        try {
+          var r = indexedDB.open(IMG_DB, 1);
+          r.onupgradeneeded = function(){ r.result.createObjectStore('i'); };
+          r.onsuccess = function(){ resolve(r.result); };
+          r.onerror = function(){ resolve(null); };
+        } catch(e) { resolve(null); }
+      });
+      return imgDbPromise;
+    }
+    async function imgPut(id, blob){
+      var db = await imgDb(); if (!db) return false;
+      return new Promise(function(res){ try { var tx = db.transaction('i', 'readwrite'); tx.objectStore('i').put(blob, id); tx.oncomplete = function(){ res(true); }; tx.onerror = function(){ res(false); }; } catch(e) { res(false); } });
+    }
+    async function imgGet(id){
+      var db = await imgDb(); if (!db) return null;
+      return new Promise(function(res){ try { var q = db.transaction('i').objectStore('i').get(id); q.onsuccess = function(){ res(q.result || null); }; q.onerror = function(){ res(null); }; } catch(e) { res(null); } });
+    }
+    function b64ToBlob(b64, mime){
+      var bin = atob(b64), u = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      return new Blob([u], { type: mime || 'image/png' });
+    }
+    function blobToB64(blob){
+      return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(String(r.result).split(',')[1] || ''); }; r.readAsDataURL(blob); });
+    }
+
+    var IMG_MODELS_KEY = 'mgai_imgmodels_v1';
+    var IMG_DEFAULTS = ['gemini-3-pro-image-preview', 'gemini-2.5-flash-image', 'gemini-2.5-flash-image-preview'];
+    var imgBlock = {};
+    async function discoverImageModels(){
+      try {
+        var c = JSON.parse(localStorage.getItem(IMG_MODELS_KEY) || 'null');
+        if (c && Date.now() - c.t < 86400000 && c.k === String(state.apiKey).slice(-8) && c.list && c.list.length) return c.list;
+      } catch(e) {}
+      var out = [], token = '';
+      try {
+        for (var page = 0; page < 5; page++) {
+          var res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200' + (token ? '&pageToken=' + encodeURIComponent(token) : ''), { headers:{ 'x-goog-api-key': state.apiKey } });
+          if (!res.ok) break;
+          var j = await res.json();
+          (j.models || []).forEach(function(m){
+            var n = String(m.name).replace(/^models\//, ''), meth = m.supportedGenerationMethods || [];
+            if (!/image|imagen/i.test(n) || /embed|vision|tts|audio|live/i.test(n)) return;
+            if (/^imagen/i.test(n) && meth.indexOf('predict') !== -1) out.push({ name:n, kind:'predict' });
+            else if (meth.indexOf('generateContent') !== -1) out.push({ name:n, kind:'content' });
+          });
+          token = j.nextPageToken; if (!token) break;
+        }
+      } catch(e) {}
+      function rank(m){ var n = m.name; return (/ultra/.test(n) ? 6 : 0) + (/pro/.test(n) ? 5 : 0) + (/flash/.test(n) ? 2 : 0) + (/fast|lite/.test(n) ? -3 : 0) + (/preview/.test(n) ? -0.5 : 0); }
+      out.sort(function(a, b){ var d = rank(b) - rank(a); return d || b.name.localeCompare(a.name, 'en', { numeric:true }); });
+      if (out.length) { try { localStorage.setItem(IMG_MODELS_KEY, JSON.stringify({ t:Date.now(), k:String(state.apiKey).slice(-8), list:out })); } catch(e) {} }
+      return out;
+    }
+    async function imageModelOrder(){
+      var disc = await discoverImageModels(), seen = {}, out = [];
+      disc.concat(IMG_DEFAULTS.map(function(n){ return { name:n, kind:'content' }; })).forEach(function(m){ if (!seen[m.name]) { seen[m.name] = 1; out.push(m); } });
+      return out;
+    }
+    var IMG_ASPECTS = ['1:1','2:3','3:2','3:4','4:3','4:5','5:4','9:16','16:9','21:9'];
+    function cleanAspect(a){ a = String(a || '1:1').replace(/\s/g, '').replace('x', ':'); return IMG_ASPECTS.indexOf(a) !== -1 ? a : '1:1'; }
+
+    var pendingImages = [];
+    /* ================= images v2: edit, variants, 4K ================= */
+    var lastGenImageId = null;
+    async function geminiImage(prompt, aspect, signal, o){
+      o = o || {};
+      var refs = o.refs || [];
+      var models = await imageModelOrder(), keys = ttsKeys(), lastErr = null;
+      if (refs.length) models = models.filter(function(m){ return m.kind === 'content'; });
+      for (var mi = 0; mi < models.length && mi < 6; mi++) {
+        for (var ki = 0; ki < keys.length; ki++) {
+          var m = models[mi], bid = m.name + '|' + keys[ki].slice(-6);
+          if (imgBlock[bid] > Date.now()) continue;
+          var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(m.name) + (m.kind === 'predict' ? ':predict' : ':generateContent');
+          var parts = [{ text:prompt }].concat(refs.map(function(r){ return { inlineData:{ mimeType:r.mime, data:r.data } }; }));
+          var size = o.size || '2K';
+          var variants = m.kind === 'predict'
+            ? [{ instances:[{ prompt:prompt }], parameters:{ sampleCount:1, aspectRatio:aspect } }]
+            : [
+                { contents:[{ parts:parts }], generationConfig:{ responseModalities:['TEXT','IMAGE'], imageConfig:{ aspectRatio:aspect, imageSize:size } } },
+                { contents:[{ parts:parts }], generationConfig:{ responseModalities:['TEXT','IMAGE'], imageConfig:{ aspectRatio:aspect } } },
+                { contents:[{ parts:[{ text:prompt + '\nAspect ratio: ' + aspect }].concat(parts.slice(1)) }], generationConfig:{ responseModalities:['TEXT','IMAGE'] } }
+              ];
+          for (var vi = 0; vi < variants.length; vi++) {
+            try {
+              var res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json', 'x-goog-api-key': keys[ki] }, body: JSON.stringify(variants[vi]), signal: signal });
+              if (!res.ok) {
+                var ej = null; try { ej = await res.json(); } catch(e) {}
+                var er = new Error('HTTP ' + res.status + ((ej && ej.error && ej.error.message) ? ' — ' + ej.error.message : '')); er.status = res.status; er.ej = ej;
+                throw er;
+              }
+              var j = await res.json(), b64 = null, mime = 'image/png';
+              if (m.kind === 'predict') { var pr = j.predictions && j.predictions[0]; if (pr && pr.bytesBase64Encoded) { b64 = pr.bytesBase64Encoded; mime = pr.mimeType || mime; } }
+              else {
+                var pp = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts;
+                (pp || []).forEach(function(p){ if (!b64 && p.inlineData && p.inlineData.data && /image/.test(p.inlineData.mimeType || 'image/')) { b64 = p.inlineData.data; mime = p.inlineData.mimeType || mime; } });
+              }
+              if (!b64) throw new Error('الموديل مرجّعش صورة' + (j.candidates && j.candidates[0] && j.candidates[0].finishReason ? ' (' + j.candidates[0].finishReason + ')' : ''));
+              return { blob: b64ToBlob(b64, mime), model: m.name };
+            } catch (err) {
+              if (err && err.name === 'AbortError') throw err;
+              lastErr = err;
+              if (err && err.status === 429) { var qi = quotaInfo(err.ej, err.message); imgBlock[bid] = Date.now() + (qi.daily ? 3 * 3600000 : Math.min(Math.max(qi.delay, 30000) + 2000, 10 * 60000)); break; }
+              if (err && (err.status === 404 || err.status === 403)) { imgBlock[bid] = Date.now() + 3600000; break; }
+              if (err && err.status === 400 && vi < variants.length - 1) continue;
+              if (err && err.status === 400) break;
+            }
+          }
+        }
+      }
+      throw lastErr || new Error('مفيش موديل صور متاح');
+    }
+    async function freeImage(prompt, aspect){
+      var dims = { '1:1':[1024,1024], '16:9':[1344,768], '9:16':[768,1344], '4:3':[1152,864], '3:4':[864,1152], '3:2':[1216,832], '2:3':[832,1216], '4:5':[896,1120], '5:4':[1120,896], '21:9':[1536,640] }[aspect] || [1024, 1024];
+      var engines = ['flux', 'turbo'], lastE = null;
+      for (var i = 0; i < engines.length; i++) {
+        var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt.slice(0, 1200)) + '?width=' + dims[0] + '&height=' + dims[1] + '&model=' + engines[i] + '&nologo=true&seed=' + Math.floor(Math.random() * 1e9);
+        try {
+          var res = await fetch(url);
+          if (res.ok) { var b = await res.blob(); if (b.size > 2000) return { blob:b, model:engines[i] + ' (مجاني)' }; }
+        } catch(e) { lastE = e; }
+        var nh = nativeHttp();
+        if (nh) {
+          try {
+            var r = await nh.request({ url:url, method:'GET', responseType:'blob', readTimeout:90000, connectTimeout:20000 });
+            if (r && r.data && typeof r.data === 'string' && r.data.length > 3000) return { blob: b64ToBlob(r.data, 'image/jpeg'), model:engines[i] + ' (مجاني)' };
+          } catch(e2) { lastE = e2; }
+        }
+      }
+      throw lastE || new Error('الصور المجانية مش متاحة دلوقتي');
+    }
+    async function refineImagePrompt(user, style, editing, negative){
+      try {
+        var g = await geminiSide(
+          (editing
+            ? 'You are an expert at writing image-EDITING instructions. The user supplied reference image(s) and wants a change. Write ONE precise English instruction: state exactly what to change and explicitly keep everything else (subject identity, pose, composition, lighting, background) unchanged unless the user asks otherwise.\n'
+            : 'You are an expert prompt engineer for state-of-the-art image generators. Convert the user\'s request into ONE detailed English image prompt.\nRules: keep EVERY detail, number, color, character, object, mood and constraint the user gave, exactly; never contradict or drop anything. If the user wants text written inside the image, include that text in quotes exactly as given. Add professional art direction only where the user left gaps (composition, camera/lens, lighting, materials, depth, color grading, "ultra detailed, sharp focus, high resolution"). ') +
+          (style ? 'Required style: ' + style + '. ' : '') + (negative ? 'Avoid: ' + negative + '. ' : '') +
+          'Output the final prompt only, no explanations.\n\nUser request:\n' + user);
+        var t = (g.text || '').replace(/^["'\s]+|["'\s]+$/g, '');
+        if (t.length > 20) return t.slice(0, 3500);
+      } catch(e) {}
+      return (style ? style + '. ' : '') + user + (editing ? '' : '. Ultra detailed, high resolution, sharp focus, professional quality.') + (negative ? ' Avoid: ' + negative + '.' : '');
+    }
+    async function collectImageRefs(a){
+      var refs = [], i;
+      for (i = state.messages.length - 1; i >= 0; i--) {
+        var m = state.messages[i];
+        if (m.role === 'user') {
+          (m.attachments || []).forEach(function(at){
+            if (at.kind === 'image' && at.dataUrl) { var mt = /^data:([^;]+);base64,(.*)$/.exec(at.dataUrl); if (mt) refs.push({ mime:mt[1], data:mt[2] }); }
+          });
+          break;
+        }
+      }
+      if (!refs.length && (a.edit_previous === true || a.edit_previous === 'true') && lastGenImageId) {
+        var b = await imgGet(lastGenImageId);
+        if (b && /^image/.test(b.type)) refs.push({ mime:b.type, data: await blobToB64(b) });
+      }
+      return refs.slice(0, 3);
+    }
+    async function toolGenerateImage(a, ctx){
+      var user = String(a.prompt || '').trim();
+      if (!user) return { error:'prompt مطلوب' };
+      var aspect = cleanAspect(a.aspect_ratio);
+      var count = Math.min(Math.max(parseInt(a.count, 10) || 1, 1), 4);
+      var size = /ultra|4k|max|أعلى|اعلى/i.test(String(a.quality || '')) ? '4K' : '2K';
+      var refs = await collectImageRefs(a);
+      var prompt = await refineImagePrompt(user, String(a.style || '').trim(), refs.length > 0, String(a.negative || '').trim());
+      var ids = [], notes = [], model = '', i;
+      for (i = 0; i < count; i++) {
+        var pr = i === 0 ? prompt : prompt + '\nVariation ' + (i + 1) + ': a clearly different composition and camera angle, same subject and style.';
+        var made = null;
+        try { made = await geminiImage(pr, aspect, undefined, { refs:refs, size:size }); }
+        catch (e) { if (!notes.length) notes.push('Gemini: ' + errShort(e)); }
+        if (!made && !refs.length) {
+          try { made = await freeImage(pr, aspect); if (notes.indexOf('اتعملت بالموديل المجاني الاحتياطي') === -1) notes.push('اتعملت بالموديل المجاني الاحتياطي'); }
+          catch (e2) { notes.push(errShort(e2)); }
+        }
+        if (!made) continue;
+        var id = 'img' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        await imgPut(id, made.blob);
+        ids.push(id); model = made.model; lastGenImageId = id;
+      }
+      if (!ids.length) return { error:'مقدرتش أعمل الصورة: ' + notes.join(' | ') };
+      if (ctx && ctx.live) postImageMessage(ids, '🖼️ ' + user.slice(0, 120));
+      else pendingImages = pendingImages.concat(ids);
+      return { ok:true, shown_to_user:true, images:ids.length, model:model, aspect_ratio:aspect, edited:refs.length > 0, final_prompt:prompt.slice(0, 400), notes:notes };
+    }
+
+    /* ================= video: real Veo when the account allows it, else a cinematic video built on the phone ================= */
+    var VID_MODELS_KEY = 'mgai_vidmodels_v1', vidBlock = {};
+    async function discoverVideoModels(){
+      try {
+        var c = JSON.parse(localStorage.getItem(VID_MODELS_KEY) || 'null');
+        if (c && Date.now() - c.t < 86400000 && c.k === String(state.apiKey).slice(-8)) return c.list || [];
+      } catch(e) {}
+      var out = [], token = '';
+      try {
+        for (var page = 0; page < 5; page++) {
+          var res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200' + (token ? '&pageToken=' + encodeURIComponent(token) : ''), { headers:{ 'x-goog-api-key': state.apiKey } });
+          if (!res.ok) break;
+          var j = await res.json();
+          (j.models || []).forEach(function(m){
+            var n = String(m.name).replace(/^models\//, '');
+            if (/veo/i.test(n) && (m.supportedGenerationMethods || []).indexOf('predictLongRunning') !== -1) out.push(n);
+          });
+          token = j.nextPageToken; if (!token) break;
+        }
+      } catch(e) {}
+      function rank(n){ return (/lite/.test(n) ? -2 : 0) + (/fast/.test(n) ? 0 : 2); }
+      out.sort(function(a, b){ return (rank(b) - rank(a)) || b.localeCompare(a, 'en', { numeric:true }); });
+      try { localStorage.setItem(VID_MODELS_KEY, JSON.stringify({ t:Date.now(), k:String(state.apiKey).slice(-8), list:out })); } catch(e) {}
+      return out;
+    }
+    async function downloadVideoBlob(uri, key){
+      var nh = nativeHttp();
+      if (nh) {
+        try {
+          var r = await nh.request({ url:uri, method:'GET', headers:{ 'x-goog-api-key': key }, responseType:'blob', readTimeout:120000, connectTimeout:20000 });
+          if (r && typeof r.data === 'string' && r.data.length > 1000) return b64ToBlob(r.data, 'video/mp4');
+        } catch(e) {}
+      }
+      var res = await fetch(uri, { headers:{ 'x-goog-api-key': key } });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' وانا بنزّل الفيديو');
+      return await res.blob();
+    }
+    async function veoVideo(prompt, aspect, seconds){
+      var models = await discoverVideoModels(), keys = ttsKeys(), lastErr = null;
+      if (!models.length) throw new Error('حسابك مفيهوش موديلات Veo (الفيديو من جوجل مدفوع بس)');
+      var dur = [4, 6, 8].reduce(function(b, v){ return Math.abs(v - seconds) < Math.abs(b - seconds) ? v : b; }, 8);
+      var ar = aspect === '9:16' ? '9:16' : '16:9';
+      for (var mi = 0; mi < models.length && mi < 3; mi++) {
+        for (var ki = 0; ki < keys.length; ki++) {
+          var bid = models[mi] + '|' + keys[ki].slice(-6);
+          if (vidBlock[bid] > Date.now()) continue;
+          try {
+            var res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(models[mi]) + ':predictLongRunning', {
+              method:'POST', headers:{ 'Content-Type':'application/json', 'x-goog-api-key': keys[ki] },
+              body: JSON.stringify({ instances:[{ prompt:prompt }], parameters:{ aspectRatio:ar, durationSeconds:dur } })
+            });
+            if (!res.ok) {
+              var ej = null; try { ej = await res.json(); } catch(e) {}
+              var er = new Error('HTTP ' + res.status + ((ej && ej.error && ej.error.message) ? ' — ' + ej.error.message : '')); er.status = res.status;
+              throw er;
+            }
+            var op = await res.json(), opName = op.name;
+            if (!opName) throw new Error('Veo مرجّعش رقم العملية');
+            var t0 = Date.now(), done = op.done ? op : null;
+            while (!done && Date.now() - t0 < 6 * 60000) {
+              await new Promise(function(r){ setTimeout(r, 8000); });
+              var pr = await fetch('https://generativelanguage.googleapis.com/v1beta/' + opName, { headers:{ 'x-goog-api-key': keys[ki] } });
+              if (!pr.ok) throw new Error('HTTP ' + pr.status + ' وانا بسأل عن الفيديو');
+              var pj = await pr.json(); if (pj.done) done = pj;
+            }
+            if (!done) throw new Error('Veo اتأخر أكتر من 6 دقايق');
+            if (done.error) throw new Error(done.error.message || 'Veo فشل');
+            var gv = done.response && (done.response.generateVideoResponse || done.response);
+            var uri = gv && gv.generatedSamples && gv.generatedSamples[0] && gv.generatedSamples[0].video && gv.generatedSamples[0].video.uri;
+            if (!uri) throw new Error('الفيديو اترفض من فلاتر الأمان أو مرجعش');
+            return { blob: await downloadVideoBlob(uri, keys[ki]), model: models[mi] };
+          } catch (err) {
+            lastErr = err;
+            var msg = String((err && err.message) || '');
+            if (err && (err.status === 403 || err.status === 404 || err.status === 400 || /free tier|billing|paid|not available/i.test(msg))) vidBlock[bid] = Date.now() + 6 * 3600000;
+            else if (err && err.status === 429) vidBlock[bid] = Date.now() + 10 * 60000;
+          }
+        }
+      }
+      throw lastErr || new Error('Veo مش متاح');
+    }
+
+    /* the free path: generate keyframes, then render a cinematic clip (Ken Burns, cross-fades, optional music) right on the phone */
+    function loadBitmap(blob){
+      if (window.createImageBitmap) return createImageBitmap(blob);
+      return new Promise(function(res, rej){ var im = new Image(); im.onload = function(){ res(im); }; im.onerror = rej; im.src = URL.createObjectURL(blob); });
+    }
+    function pickVideoMime(){
+      var c = ['video/mp4;codecs=avc1.42E01E', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+      if (!window.MediaRecorder) return '';
+      for (var i = 0; i < c.length; i++) { try { if (MediaRecorder.isTypeSupported(c[i])) return c[i]; } catch(e) {} }
+      return '';
+    }
+    async function composeVideo(blobs, o){
+      var dims = { '16:9':[1280,720], '9:16':[720,1280], '1:1':[960,960], '4:3':[1024,768], '3:4':[768,1024] }[o.aspect] || [1280, 720];
+      var imgs = await Promise.all(blobs.map(loadBitmap));
+      var canvas = document.createElement('canvas'); canvas.width = dims[0]; canvas.height = dims[1];
+      var g = canvas.getContext('2d'), W = dims[0], H = dims[1];
+      var total = o.seconds, n = imgs.length, per = total / n, xf = Math.min(0.8, per * 0.28);
+      var stream = canvas.captureStream(30), actx = null, stopMusic = function(){};
+      if (o.music) {
+        try {
+          actx = getAudioCtx();
+          var dest = actx.createMediaStreamDestination(), master = actx.createGain(), t0 = actx.currentTime;
+          master.gain.setValueAtTime(0.0001, t0); master.gain.exponentialRampToValueAtTime(0.07, t0 + 1.2);
+          master.gain.setValueAtTime(0.07, t0 + total - 1.5); master.gain.exponentialRampToValueAtTime(0.0001, t0 + total);
+          master.connect(dest);
+          var oscs = [220, 277.18, 329.63, 440].map(function(f, i){
+            var os = actx.createOscillator(), gg = actx.createGain(), lfo = actx.createOscillator(), lg = actx.createGain();
+            os.type = i % 2 ? 'sine' : 'triangle'; os.frequency.value = f; gg.gain.value = 0.25;
+            lfo.frequency.value = 0.15 + i * 0.07; lg.gain.value = 0.12; lfo.connect(lg); lg.connect(gg.gain);
+            os.connect(gg); gg.connect(master); os.start(t0); lfo.start(t0); os.stop(t0 + total + 0.2); lfo.stop(t0 + total + 0.2);
+            return os;
+          });
+          dest.stream.getAudioTracks().forEach(function(tr){ stream.addTrack(tr); });
+        } catch(e) {}
+      }
+      var mime = pickVideoMime(), chunks = [];
+      var rec = new MediaRecorder(stream, mime ? { mimeType:mime, videoBitsPerSecond:6000000 } : undefined);
+      rec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
+      var stopped = new Promise(function(res){ rec.onstop = res; });
+      function drawImg(im, prog, idx, alpha){
+        var iw = im.width, ih = im.height, base = Math.max(W / iw, H / ih), zoomIn = idx % 2 === 0;
+        var z = base * (zoomIn ? 1.04 + 0.14 * prog : 1.18 - 0.14 * prog);
+        var dw = iw * z, dh = ih * z;
+        var px = ((idx % 3) - 1) * 0.03 * W * (prog - 0.5), py = ((idx % 2) ? 1 : -1) * 0.03 * H * (prog - 0.5);
+        g.globalAlpha = alpha; g.drawImage(im, (W - dw) / 2 + px, (H - dh) / 2 + py, dw, dh); g.globalAlpha = 1;
+      }
+      function draw(t){
+        var idx = Math.min(n - 1, Math.floor(t / per)), local = t - idx * per;
+        g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+        drawImg(imgs[idx], local / per, idx, 1);
+        if (idx < n - 1 && local > per - xf) drawImg(imgs[idx + 1], 0, idx + 1, (local - (per - xf)) / xf);
+        var vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+        vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.38)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+        var fade = Math.min(1, t / 0.6, (total - t) / 0.6); if (fade < 1) { g.fillStyle = 'rgba(0,0,0,' + (1 - Math.max(0, fade)) + ')'; g.fillRect(0, 0, W, H); }
+        if (o.title && t < 2.8) {
+          g.globalAlpha = Math.min(1, t / 0.5, (2.8 - t) / 0.5); g.fillStyle = '#fff'; g.font = 'bold ' + Math.round(H * 0.06) + 'px sans-serif'; g.textAlign = 'center'; g.shadowColor = 'rgba(0,0,0,.7)'; g.shadowBlur = 12;
+          g.fillText(o.title, W / 2, H * 0.9, W * 0.9); g.shadowBlur = 0; g.globalAlpha = 1;
+        }
+      }
+      draw(0);
+      rec.start(250);
+      var start = performance.now();
+      await new Promise(function(res){
+        var timer = setInterval(function(){
+          var t = (performance.now() - start) / 1000;
+          if (t >= total) { clearInterval(timer); draw(total - 0.001); res(); } else draw(t);
+        }, 1000 / 30);
+      });
+      await new Promise(function(r){ setTimeout(r, 250); });
+      rec.stop(); await stopped;
+      stream.getTracks().forEach(function(tr){ try { tr.stop(); } catch(e) {} });
+      return new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' });
+    }
+
+    async function planScenes(prompt, count, style){
+      try {
+        var g = await geminiSide('Split this video idea into exactly ' + count + ' consecutive cinematic shots for an AI image generator. Keep the SAME characters, setting, color palette and visual style across all shots (describe the main subject identically each time), and vary only camera angle, framing and moment so the sequence tells a short story. ' + (style ? 'Visual style: ' + style + '. ' : '') + 'Reply with ONLY a JSON array of ' + count + ' English strings.\n\nVideo idea:\n' + prompt);
+        var m = /\[[\s\S]*\]/.exec(g.text || ''); var arr = m ? JSON.parse(m[0]) : null;
+        if (arr && arr.length >= 2) return arr.slice(0, count).map(String);
+      } catch(e) {}
+      var shots = ['wide establishing shot', 'medium shot, slightly lower angle', 'close-up with shallow depth of field', 'dynamic angle, mid-action', 'dramatic wide shot at the climax', 'final emotional close shot'];
+      var out = []; for (var i = 0; i < count; i++) out.push(prompt + ', ' + shots[i % shots.length] + ', cinematic lighting, consistent style');
+      return out;
+    }
+
+    async function toolGenerateVideo(a, ctx){
+      var user = String(a.prompt || '').trim();
+      if (!user) return { error:'prompt مطلوب' };
+      var aspect = ['16:9','9:16','1:1','4:3','3:4'].indexOf(String(a.aspect_ratio || '').replace(/\s/g, '')) !== -1 ? String(a.aspect_ratio).replace(/\s/g, '') : '16:9';
+      var seconds = Math.min(Math.max(parseInt(a.duration_seconds, 10) || 8, 4), 20);
+      var style = String(a.style || '').trim(), notes = [], blob = null, model = '', engine = '';
+      var enPrompt = await refineImagePrompt('Cinematic video: ' + user, style, false, '');
+      try { var v = await veoVideo(enPrompt + ' Smooth natural motion, cinematic camera movement.', aspect, seconds); blob = v.blob; model = v.model; engine = 'veo'; }
+      catch (e) { notes.push('Veo: ' + errShort(e)); }
+      if (!blob) {
+        var count = Math.min(6, Math.max(3, Math.round(seconds / 2.5)));
+        var scenes = await planScenes(enPrompt, count, style), shots = [], i;
+        for (i = 0; i < scenes.length; i++) {
+          var made = null;
+          try { made = await geminiImage(scenes[i], aspect === '1:1' ? '1:1' : (aspect === '9:16' || aspect === '3:4' ? '9:16' : '16:9'), undefined, { size:'1K' }); } catch(e1) {}
+          if (!made) { try { made = await freeImage(scenes[i], aspect); } catch(e2) { notes.push(errShort(e2)); } }
+          if (made) shots.push(made.blob);
+        }
+        if (shots.length < 2) return { error:'مقدرتش أجهّز لقطات كفاية للفيديو: ' + notes.join(' | ') };
+        blob = await composeVideo(shots, { aspect:aspect, seconds:seconds, music:a.music !== false && a.with_music !== false, title:String(a.title || '').trim() });
+        engine = 'storyboard'; model = shots.length + ' لقطات';
+        notes.push('اتعمل كفيديو سينمائي من لقطات متحركة (الفيديو التوليدي الحقيقي محتاج حساب مدفوع)');
+      }
+      var id = 'vid' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      await imgPut(id, blob);
+      if (ctx && ctx.live) postImageMessage([id], '🎬 ' + user.slice(0, 120));
+      else pendingImages.push(id);
+      return { ok:true, shown_to_user:true, engine:engine, model:model, seconds:seconds, aspect_ratio:aspect, notes:notes };
+    }
+
+    function postImageMessage(ids, text){
+      try {
+        hideEmptyState();
+        var msg = addMessage('assistant', text || '', { images: ids });
+        finalizeAssistantMessage(msg);
+        persistCurrentConversation();
+      } catch(e) { console.error(e); }
+    }
+    async function shareImage(id){
+      var blob = await imgGet(id); if (!blob) { toast('الصورة مش موجودة.'); return; }
+      var ext = /mp4/.test(blob.type) ? 'mp4' : (/webm/.test(blob.type) ? 'webm' : (/jpe?g/.test(blob.type) ? 'jpg' : 'png')), name = 'MG-ai-' + id + '.' + ext;
+      var P = window.Capacitor && window.Capacitor.Plugins;
+      try {
+        if (P && P.Filesystem && P.Share) {
+          await P.Filesystem.writeFile({ path:name, data: await blobToB64(blob), directory:'CACHE' });
+          var u = await P.Filesystem.getUri({ path:name, directory:'CACHE' });
+          await P.Share.share({ title:'صورة من MG.ai', files:[u.uri] });
+        } else {
+          var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+        }
+      } catch (err) { if (!/cancel|abort/i.test(String((err && err.message) || err))) toast('فشل الحفظ: ' + errShort(err)); }
+    }
+    function renderImageCards(msg){
+      if (!msg.images || !msg.images.length || !msg.colEl) return;
+      msg.images.forEach(function(id){
+        if (msg._shown && msg._shown.indexOf(id) !== -1) return;
+        (msg._shown = msg._shown || []).push(id);
+        var card = document.createElement('div');
+        card.className = 'gen-image';
+        card.innerHTML = '<div class="gen-image-ph">' + (String(id).indexOf('vid') === 0 ? '🎬 بحمّل الفيديو...' : '🖼️ بحمّل الصورة...') + '</div>';
+        var actions = msg.colEl.querySelector('.msg-actions');
+        if (actions) msg.colEl.insertBefore(card, actions); else msg.colEl.appendChild(card);
+        imgGet(id).then(function(blob){
+          if (!blob) { card.textContent = '🖼️ الصورة اتمسحت من الجهاز'; return; }
+          var url = URL.createObjectURL(blob);
+          card.innerHTML = '';
+          var im;
+          if (/^video/.test(blob.type)) { im = document.createElement('video'); im.src = url; im.controls = true; im.playsInline = true; im.loop = true; im.preload = 'metadata'; }
+          else { im = document.createElement('img'); im.src = url; im.alt = 'صورة مولّدة'; im.addEventListener('click', function(){ window.open(url, '_blank'); }); }
+          var bar = document.createElement('div'); bar.className = 'gen-image-bar';
+          var b1 = document.createElement('button'); b1.type = 'button'; b1.textContent = '💾 حفظ / مشاركة';
+          b1.addEventListener('click', function(){ shareImage(id); });
+          bar.appendChild(b1); card.appendChild(im); card.appendChild(bar);
+          scrollToBottom();
+        });
+      });
+    }
+
+    /* ---- last-resort free text model so the chat never just stops ---- */
+    async function freeTextFallback(contents, onDelta){
+      var msgs = [{ role:'system', content:'أنت MG.ai CODER، مساعد ذكي بتتكلم بالعامية المصرية وتردّ بنفس لغة المستخدم، وبتجاوب بتفصيل ودقة وتكتب كود كامل لما يُطلب.' + memoryBlock() + genderNote() }];
+      contents.slice(-12).forEach(function(c){
+        var t = (c.parts || []).map(function(p){
+          if (p.text) return p.text;
+          if (p.functionResponse) return '[نتيجة أداة ' + p.functionResponse.name + ']: ' + JSON.stringify(p.functionResponse.response).slice(0, 2500);
+          return '';
+        }).filter(Boolean).join('\n');
+        if (t) msgs.push({ role: c.role === 'model' ? 'assistant' : 'user', content: t });
+      });
+      var res = await fetch('https://text.pollinations.ai/openai', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ model:'openai', messages:msgs, temperature:0.7 }) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var j = await res.json();
+      var text = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+      if (!text) throw new Error('رد فاضي');
+      text = '⚠️ (الحصة خلصت.. ده رد احتياطي مجاني، أبسط من المعتاد)\n\n' + text;
+      onDelta(text, text);
+      return { text:text, calls:[], parts:[{ text:text }], finishReason:'STOP', fallback:true };
+    }
+
+    var DEVICE_FUNCS = [
+      { name:'set_alarm', description:'يضبط منبه في تطبيق الساعة على التليفون.', parameters:{ type:'OBJECT', properties:{ hour:{ type:'INTEGER', description:'الساعة بنظام 24 ساعة (0-23)' }, minute:{ type:'INTEGER', description:'الدقيقة (0-59)' }, label:{ type:'STRING', description:'اسم المنبه (اختياري)' } }, required:['hour','minute'] } },
+      { name:'set_timer', description:'يشغّل تايمر عدّ تنازلي.', parameters:{ type:'OBJECT', properties:{ seconds:{ type:'INTEGER', description:'المدة بالثواني' }, label:{ type:'STRING' } }, required:['seconds'] } }
+    ];
+    async function execDeviceTool(name, a){
+      var P = assistantPlugin();
+      if (!P) return { error:'التطبيق محتاج تحديث عشان ينفّذ المنبه والتايمر (النسخة دي من غير الإضافة)' };
+      try {
+        if (name === 'set_alarm') {
+          var h = parseInt(a.hour, 10), mi = parseInt(a.minute, 10);
+          if (isNaN(h) || isNaN(mi) || h < 0 || h > 23 || mi < 0 || mi > 59) return { error:'وقت غير صالح' };
+          await P.setAlarm({ hour:h, minute:mi, label:String(a.label || 'MG.ai') });
+          toast('⏰ ضبطت المنبه ' + ('0' + h).slice(-2) + ':' + ('0' + mi).slice(-2));
+          return { ok:true, hour:h, minute:mi };
+        }
+        var sec = parseInt(a.seconds, 10);
+        if (isNaN(sec) || sec < 1 || sec > 86400) return { error:'مدة غير صالحة' };
+        await P.setTimer({ seconds:sec, label:String(a.label || 'MG.ai') });
+        toast('⏱ شغّلت تايمر ' + sec + ' ثانية');
+        return { ok:true, seconds:sec };
+      } catch (e) { return { error:String((e && e.message) || e) }; }
     }
 
     /* ================= long-term memory (self-learning) ================= */
@@ -3374,7 +4061,7 @@
       }
       if (!conv) return;
       conv.messages = state.messages.map(function(m){
-        return { role:m.role, content:m.content, error:!!m.error, attachments: m.attachments || null };
+        return { role:m.role, content:m.content, error:!!m.error, attachments: m.attachments || null, images: m.images || null };
       });
       conv.updatedAt = Date.now();
       if (!conv.customTitle) conv.title = deriveTitle(conv.messages);
@@ -3408,7 +4095,7 @@
       } else {
         hideEmptyState();
         conv.messages.forEach(function(m){
-          var msg = addMessage(m.role, m.content, { error:m.error, attachments:m.attachments });
+          var msg = addMessage(m.role, m.content, { error:m.error, attachments:m.attachments, images:m.images });
           if (m.role === 'assistant') {
             if (m.error) renderErrorMessage(msg);
             else finalizeAssistantMessage(msg);
@@ -3713,7 +4400,7 @@
 
     function addMessage(role, content, opts){
       opts = opts || {};
-      var msg = { id:'m'+Math.random().toString(36).slice(2), role:role, content:content, error:!!opts.error, attachments: opts.attachments || null };
+      var msg = { id:'m'+Math.random().toString(36).slice(2), role:role, content:content, error:!!opts.error, attachments: opts.attachments || null, images: opts.images || null };
       state.messages.push(msg);
 
       var row = document.createElement('div');
@@ -3778,6 +4465,7 @@
     }
 
     function finalizeAssistantMessage(msg){
+      if (msg.role === 'assistant' && !msg.error && pendingImages.length) { msg.images = (msg.images || []).concat(pendingImages); pendingImages = []; }
       var streamDiv = msg.el.querySelector('.stream-text');
       if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
         try {
@@ -3794,6 +4482,7 @@
         msg.colEl.appendChild(buildMessageActions(msg));
         msg.actionsAdded = true;
       }
+      renderImageCards(msg);
       scrollToBottom();
     }
 
@@ -3848,10 +4537,13 @@
           if (!o.noSearch && !o.agent && V2.search && /HTTP 400/.test(m)) {
             var o3 = cloneOpts(o); o3.noSearch = true; return attempt(o3);
           }
-          if (/HTTP (429|503)/.test(m) && i < combos.length - 1) {
+          if (/HTTP (429|5\d\d)|Failed to fetch|NetworkError|Load failed/i.test(m) && i < combos.length - 1) {
             if (/HTTP 429/.test(m)) exhausted[c.id] = Date.now() + 20 * 60000;
             i++;
             return attempt(o);
+          }
+          if (!o.agent && /HTTP (429|5\d\d)|Failed to fetch|NetworkError|Load failed/i.test(m)) {
+            return freeTextFallback(messagesForApi, onDelta).catch(function(){ throw err; });   /* every Gemini quota is gone: still answer */
           }
           throw err;
         });
@@ -3881,6 +4573,7 @@
         body.tools = [{ functionDeclarations: WEB_FUNCS }];
         sysText += WEB_PROMPT;
       }
+      if (voiceMode.open && !opts.agent && body.tools && body.tools[0] && body.tools[0].functionDeclarations) body.tools[0].functionDeclarations = body.tools[0].functionDeclarations.concat(DEVICE_FUNCS);
       if (sysText) {
         body.systemInstruction = { parts: [{ text: sysText }] };
       }
@@ -4554,7 +5247,8 @@
           case 'discard_changes': return toolDiscard();
           case 'commit_changes': return await toolCommit(args);
           case 'get_build_status': return await toolBuildStatus();
-          case 'web_search': case 'youtube_search': case 'read_webpage': return await execWebTool(name, args);
+          case 'web_search': case 'youtube_search': case 'read_webpage': case 'generate_image': case 'generate_video': return await execWebTool(name, args);
+          case 'set_alarm': case 'set_timer': return await execDeviceTool(name, args);
           default: return { error:'أداة غير معروفة: ' + name };
         }
       } catch(e) {
@@ -4574,6 +5268,10 @@
         case 'discard_changes': return '↩ إلغاء التعديلات المتجهزة';
         case 'commit_changes': return '🚀 رفع التعديلات';
         case 'get_build_status': return '🔨 حالة البناء';
+        case 'generate_video': return '🎬 بعمل فيديو: ' + String(a.prompt || '').slice(0, 50);
+        case 'generate_image': return '🖼️ بعمل صورة: ' + String(a.prompt || '').slice(0, 50);
+        case 'set_alarm': return '⏰ منبه ' + (a.hour != null ? a.hour + ':' + ('0' + (a.minute || 0)).slice(-2) : '');
+        case 'set_timer': return '⏱ تايمر ' + (a.seconds || '') + ' ثانية';
         case 'web_search': return '🌐 بحث: ' + (a.query || '');
         case 'youtube_search': return '▶️ يوتيوب: ' + (a.query || '');
         case 'read_webpage': return '📄 قراءة ' + String(a.url || '').replace(/^https?:\/\//, '').slice(0, 40);
@@ -4885,7 +5583,7 @@
     });
     els.voiceOrb.addEventListener('click', function(){
       var st = voiceMode.state;
-      if (st === 'standby') { openDialogue({ mode:'chat' }); return; }   /* tap = wake him manually */
+      if (st === 'standby') { vpAcceptLastReject(); openDialogue({ mode:'chat' }); return; }   /* tap = wake him manually (and teach him it was you) */
       if (voiceMode.live) { if (st === 'speaking') liveInterrupt(); return; }
       if (st === 'listening' && mic.speaking) finishUtterance();
       else if (st === 'speaking' || st === 'thinking') voiceInterrupt();
@@ -4975,7 +5673,8 @@
       var ok = await askConfirm({ title:'مسح الذاكرة', lines:['هتتمسح ' + memory.length + ' حاجة من ذاكرته.'], okLabel:'امسح' });
       if (ok) { memory = []; saveMemory(); renderMemoryList(); updateBackupInfo(); }
     });
-    document.getElementById('vpEnrollBtn').addEventListener('click', openEnrollment);
+    document.getElementById('vpEnrollBtn').addEventListener('click', function(){ openEnrollment(false); });
+    document.getElementById('vpMoreBtn').addEventListener('click', function(){ openEnrollment(true); });
     document.getElementById('vpClearBtn').addEventListener('click', async function(){
       if (!voiceprint) return;
       var ok = await askConfirm({ title:'مسح بصمة الصوت', lines:['هيرجع يسمع أي صوت حواليك لحد ما تدرّبه تاني.'], okLabel:'امسح' });
