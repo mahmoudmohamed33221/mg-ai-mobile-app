@@ -482,6 +482,7 @@
   .confirm-note{font-size:12.5px;color:var(--text-secondary);line-height:1.8;margin-top:10px;}
   .confirm-actions{display:flex;gap:10px;margin-top:16px;}
   .confirm-actions .primary-btn,.confirm-actions .ghost-btn{margin-top:0;}
+  .vgroup-title{margin:14px 2px 6px;font-size:13px;font-weight:700;color:var(--accent);}
   .vrow{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--bg-elevated);cursor:pointer;-webkit-tap-highlight-color:transparent;}
   .vrow.sel{border-color:var(--accent);background:var(--accent-soft);}
   .vrow .vtick{width:16px;flex-shrink:0;color:var(--accent);font-size:13px;text-align:center;}
@@ -666,6 +667,8 @@
       <label for="liveModelInput" style="margin-top:8px;">موديل اللايف (سيبه فاضي = اختيار تلقائي)</label>
       <input type="text" id="liveModelInput" placeholder="تلقائي" autocomplete="off" spellcheck="false" dir="ltr">
       <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="wakeModeInput"><span>نظام النداء «M-G»: الدايرة رمادي وهو مستنيك، ولما تقول «M-G» بيسمعك. أخضر = مستني أمرك، أزرق = سامعك، أحمر = بيرد عليك</span></label>
+      <label for="expressiveInput" style="margin-top:8px;">درجة التعبير في الصوت</label>
+      <select id="expressiveInput"><option value="natural">هادي وطبيعي</option><option value="high">معبّر (ردود فعل وضحك وإحساس)</option><option value="max">تمثيلي جدًا</option></select>
       <label for="idleSecInput" style="margin-top:8px;">يرجع للانتظار بعد صمت</label>
       <select id="idleSecInput"><option value="8">٨ ثواني</option><option value="12">١٢ ثانية</option><option value="20">٢٠ ثانية</option><option value="30">٣٠ ثانية</option></select>
       <label for="endMsInput" style="margin-top:8px;">سرعة الرد بعد ما تسكت</label>
@@ -697,6 +700,8 @@
       </select>
       <label for="ttsModelInput" style="margin-top:8px;">موديل Gemini للقراءة</label>
       <input type="text" id="ttsModelInput" placeholder="gemini-3.8-flash-tts" autocomplete="off" spellcheck="false" dir="ltr">
+      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="ttsPlainInput"><span>اقرا النص زي ما هو من غير أي تعليمات أسلوب (فعّلها لو سمعته بيقول كلام إنجليزي قبل الرد)</span></label>
+      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="tashkeelInput"><span>تشكيل ذكي قبل القراءة (نطق أدق، بيضيف ثانية تقريبًا)</span></label>
       <button type="button" class="text-btn" id="voiceTestBtn" style="width:100%;padding:10px;margin-top:8px;">🔊 جرّب الصوت المثبّت</button>
       <div class="hint">كل جملة بتتقري بتتسجّل على تليفونك، فلو اتقرت تاني بتشتغل فورًا ومن غير ما تستهلك من الحصة.</div>
     </div>
@@ -704,7 +709,7 @@
     <div class="field">
       <label>🎭 اختار صوتك (بيتثبّت ومبيتغيّرش لوحده)</label>
       <div id="geminiVoiceList"></div>
-      <div class="hint">دي ٣٠ شخصية صوت من Gemini، والوصف من جوجل. كلهم بيتكلموا مصري وإنجليزي. اضغط على الصوت عشان تثبّته، و▶ عشان تسمع عيّنة (بتتسجّل بعد أول مرة).</div>
+      <div class="hint">٣٠ صوت من Gemini مقسّمين: رجال وشباب وبنات وستات. التقسيم تقريبي حسب سماع الناس (جوجل مبتنشرش النوع)، والوصف جنب كل صوت من جوجل. اضغط على الصوت عشان تثبّته، و▶ عشان تسمع عيّنة (بتتسجّل بعد أول مرة). كلهم بيتكلموا مصري، والمساعد بيتكلم عن نفسه بالمذكر أو المؤنث حسب الصوت اللي تختاره.</div>
     </div>
 
     <div class="field">
@@ -1140,7 +1145,7 @@
       var copyBtn = document.createElement('button');
       copyBtn.type = 'button'; copyBtn.className = 'msg-action-btn'; copyBtn.textContent = '📋';
       copyBtn.title = 'نسخ الرسالة';
-      bindCopyButton(copyBtn, function(){ return msg.content || ''; }, { idleLabel:'📋', doneLabel:'✅', failLabel:'⚠️' });
+      bindCopyButton(copyBtn, function(){ return stripVoiceTags(msg.content || ''); }, { idleLabel:'📋', doneLabel:'✅', failLabel:'⚠️' });
       row.appendChild(copyBtn);
 
       if (msg.role === 'assistant') {
@@ -1208,7 +1213,7 @@
         saveV2();
         if (!state.apiKey) { toast('ضيف مفتاح Gemini الأول وتحت اضغط حفظ.'); return; }
         toast('بجهّز الصوت...');
-        speakText('أهلاً بيك يا باشا! أنا MG.ai، وجاهز نتكلم مصري زي ما تحب. And I can also speak English naturally when you need it.', {
+        speakText('أهلاً بيك يا باشا! أنا إم جي، وجاهز نتكلم مصري زي ما تحب. جرّب تقولي أي حاجة.', {
           onError: function(err){ toast(friendlyTtsError(err)); }
         });
       });
@@ -1221,17 +1226,25 @@
        speech->text (audio is sent to Gemini), and a continuous voice-activity loop so the
        call never "stops hearing you" after the first sentence. */
     var V2_KEY = 'mgai_voice_v2';
-    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:900, sttModel:'', vpStrict:'lenient', gender:'', vpMig2:true };
-    var GEMINI_VOICES = [
-      ['Kore','حازم وواضح'], ['Puck','مرِح ومتحمس'], ['Charon','رزين ومعلوماتي'], ['Fenrir','حماسي'],
-      ['Aoede','خفيف ومريح'], ['Leda','شبابي'], ['Orus','قوي وحازم'], ['Zephyr','مشرق'],
-      ['Sulafat','دافي'], ['Achird','ودود'], ['Algieba','ناعم'], ['Gacrux','ناضج'],
-      ['Callirrhoe','هادي ومسترخي'], ['Autonoe','مشرق'], ['Enceladus','هامس بنَفَس'], ['Iapetus','واضح'],
-      ['Umbriel','مريح وعفوي'], ['Despina','ناعم'], ['Erinome','واضح'], ['Algenib','خشن جهوري'],
-      ['Rasalgethi','معلوماتي'], ['Laomedeia','مرِح'], ['Achernar','ناعم وهادي'], ['Alnilam','حازم'],
-      ['Schedar','متّزن'], ['Pulcherrima','صريح ومباشر'], ['Zubenelgenubi','عفوي'], ['Vindemiatrix','لطيف'],
-      ['Sadachbia','حيوي'], ['Sadaltager','واسع المعرفة']
+    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:900, sttModel:'', vpStrict:'lenient', gender:'', vpMig2:true, expressive:'high', tashkeel:true, ttsPlain:false };
+    var GEMINI_VOICE_GROUPS = [
+      { title:'👨 رجال', gender:'male', voices:[['Charon','رزين ومعلوماتي'],['Orus','قوي وحازم'],['Alnilam','حازم'],['Schedar','متّزن'],['Algenib','خشن جهوري'],['Rasalgethi','معلوماتي'],['Sadaltager','واسع المعرفة'],['Iapetus','واضح'],['Algieba','ناعم'],['Enceladus','هامس بنَفَس']] },
+      { title:'🧑 شباب', gender:'male', voices:[['Puck','مرِح ومتحمس'],['Fenrir','حماسي'],['Sadachbia','حيوي'],['Zubenelgenubi','عفوي'],['Umbriel','مريح وعفوي'],['Achird','ودود']] },
+      { title:'👧 بنات', gender:'female', voices:[['Leda','شبابي'],['Aoede','خفيف ومريح'],['Laomedeia','مرِح'],['Zephyr','مشرق'],['Autonoe','مشرق'],['Callirrhoe','هادي ومسترخي'],['Pulcherrima','صريح ومباشر']] },
+      { title:'👩 ستات', gender:'female', voices:[['Kore','حازم وواضح'],['Gacrux','ناضج'],['Sulafat','دافي'],['Vindemiatrix','لطيف'],['Achernar','ناعم وهادي'],['Despina','ناعم'],['Erinome','واضح']] }
     ];
+    var GEMINI_VOICES = [];
+    GEMINI_VOICE_GROUPS.forEach(function(g){ g.voices.forEach(function(v){ GEMINI_VOICES.push(v); }); });
+    function voiceGender(name){
+      for (var i = 0; i < GEMINI_VOICE_GROUPS.length; i++) for (var j = 0; j < GEMINI_VOICE_GROUPS[i].voices.length; j++) if (GEMINI_VOICE_GROUPS[i].voices[j][0] === name) return GEMINI_VOICE_GROUPS[i].gender;
+      return '';
+    }
+    function selfGenderNote(){
+      var g = voiceGender(V2.voice);
+      if (g === 'male') return '\n\nصوتك صوت راجل/شاب: اتكلم عن نفسك دايمًا بصيغة المذكر (أنا جاهز، هعملّك، أنا متأكد…).';
+      if (g === 'female') return '\n\nصوتك صوت بنت/ست: اتكلم عن نفسك دايمًا بصيغة المؤنث (أنا جاهزة، هعملّك، أنا متأكدة…).';
+      return '';
+    }
     (function(){
       try {
         var s = JSON.parse(localStorage.getItem(V2_KEY) || '{}') || {};
@@ -1290,10 +1303,29 @@
     }
 
     /* ---------- Gemini text-to-speech (cached, key-rotating, with free fallbacks) ---------- */
+    var VOICE_TAG_RE = /\[(?:laughs?|laughing|sighs?|excited|whispers?|whispering|curious|serious|warmly|sad|happy|gasps?|giggles?|shouting|nervous|amazed|tired|angry|surprised|thoughtful|sympathetic|playful|frustrated|annoyed|worried|anxious|scared|afraid|shy|embarrassed|proud|bored|sarcastic|tender|disgusted|relieved|nostalgic|confident|disappointed|grieving|crying|groans?|gulps?|chuckles?|sobs?|yawns?)[^\]]{0,24}\]/gi;
+    function stripVoiceTags(t){ return String(t || '').replace(VOICE_TAG_RE, '').replace(/[ \t]{2,}/g, ' ').replace(/^\s+/, ''); }
+    function modelSupportsTags(m){ return /-3\.\d/.test(String(m || '')) && /tts/i.test(String(m || '')); }
+    function ttsTextFor(model, text){ return modelSupportsTags(model) ? text : stripVoiceTags(text); }
     function ttsPrompt(text){
-      var hasAr = /[\u0600-\u06FF]/.test(text);
-      if (!hasAr) return 'Say the following naturally and warmly, like a friendly person talking on a phone call: ' + text;
-      return 'Say the following like a friendly person talking on a phone call. Arabic parts must be in natural Egyptian Arabic (Cairo colloquial dialect, not formal Modern Standard Arabic). Any English words or sentences must be pronounced in clear, natural English: ' + text;
+      /* one short style line + the text: long instructions risked being spoken out loud before the reply */
+      if (V2.ttsPlain) return text;
+      if (!/[\u0600-\u06FF]/.test(text)) return 'Say in a warm, natural, expressive voice: ' + text;
+      return 'Say in a warm, expressive Egyptian Arabic (Cairo) voice with natural pauses: ' + text;
+    }
+    /* smart diacritics (tashkeel): makes pronunciation exact; skipped during live conversations to keep them fast */
+    function stripDiac(t){ return String(t || '').replace(/[\u064B-\u0652\u0670\u0640]/g, ''); }
+    async function diacritize(text){
+      var key = 'dia|' + hashStr(text), hit = await ttsCacheGet(key);
+      if (hit && hit.t) return hit.t;
+      var g = await Promise.race([
+        geminiSide('ضع التشكيل الكامل (الحركات) على النص التالي بحيث يُنطق بالضبط كما سيُقال. لو النص بالعامية المصرية شكّله بالنطق المصري الفعلي (مثل: إزَّاي، دَلوَقتي، عَايِز) وليس بالفصحى، ولو فصحى فبالتشكيل الفصيح الصحيح. ممنوع تغيّر أي كلمة أو تضيف أو تحذف أو تترجم. أبقِ الأرقام والكلمات الإنجليزية وعلامات الترقيم كما هي. اطبع النص المشكّل فقط.\n\n' + text),
+        new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('tashkeel timeout')); }, 7000); })
+      ]);
+      var out = (g.text || '').trim();
+      if (!out || stripDiac(out).replace(/\s+/g, ' ').trim() !== stripDiac(text).replace(/\s+/g, ' ').trim()) return text;   /* never accept a rewrite */
+      ttsCachePut(key, { t: out, ts: Date.now() });
+      return out;
     }
 
     function pcmToBuffer(b64, rate){
@@ -1414,13 +1446,15 @@
       if (hit && hit.b64) return pcmToBuffer(hit.b64, hit.rate || 24000);
       var models = await ttsModelOrder(), keys = ttsKeys();
       var lastErr = null, minWait = Infinity, anyDaily = false;
-      var bodyBase = {
-        contents: [{ parts: [{ text: ttsPrompt(text) }] }],
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } }
-        }
-      };
+      function bodyFor(model){
+        return {
+          contents: [{ parts: [{ text: ttsPrompt(ttsTextFor(model, text)) }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } }
+          }
+        };
+      }
       for (var mi = 0; mi < models.length; mi++) {
         for (var ki = 0; ki < keys.length; ki++) {
           var bid = models[mi] + '|' + keys[ki].slice(-6);
@@ -1428,7 +1462,7 @@
           var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(models[mi]) + ':generateContent';
           for (var attempt = 0; attempt < 2; attempt++) {
             try {
-              var res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json', 'x-goog-api-key': keys[ki] }, body: JSON.stringify(bodyBase), signal: signal });
+              var res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json', 'x-goog-api-key': keys[ki] }, body: JSON.stringify(bodyFor(models[mi])), signal: signal });
               if (!res.ok) {
                 var ej = null; try { ej = await res.json(); } catch(e) {}
                 var detail = (ej && ej.error && ej.error.message) || '';
@@ -1518,6 +1552,9 @@
       var eng = (tts.opts && tts.opts.engine) || V2.ttsEngine || 'auto';
       if (eng === 'device') return null;
       var gemErr = null;
+      if ((eng === 'auto' || eng === 'gemini') && !voiceMode.open && V2.tashkeel !== false && /[\u0600-\u06FF]/.test(text) && text.length <= 600) {
+        try { text = await diacritize(text); } catch(e) { /* read it as is */ }
+      }
       if (eng === 'auto' || eng === 'gemini') {
         try { return { kind:'buf', buf: await geminiTtsAudio(text, signal, voice) }; }
         catch (e) { if (e && e.name === 'AbortError') throw e; gemErr = e; if (eng === 'gemini') throw e; }
@@ -1862,6 +1899,30 @@
     /* ---------- live voice call ---------- */
     var VOICE_PROMPT = '\n\n[وضع المكالمة الصوتية المباشرة] كلامك دلوقتي هيتقري بصوت عالي، فاكتب زي ما بتتكلم: جمل طبيعية، من غير ماركداون ولا رموز ولا إيموجي ولا جداول ولا بلوكات كود (لو المطلوب كود قول إنك هتكتبه في الشات واشرح الفكرة بالكلام). ردّ بنفس لغة ولهجة المستخدم بالظبط: لو بيتكلم مصري ردّ بعامية مصرية طبيعية، ولو إنجليزي ردّ إنجليزي، ولو بيخلط الاتنين اخلط زيه. الكلمات التقنية الإنجليزية اكتبها بحروفها اللاتينية. خلّي الرد مفيد وفيه معلومة حقيقية، ومتوسط الطول (٣ لـ ٨ جمل) وطوّل أكتر لو السؤال محتاج شرح. لو السؤال بسيط جاوب مباشرة وبسرعة. اتكلم كإنسان ذكي وودود، مش كنشرة. لو طلب منبه أو تايمر استخدم set_alarm / set_timer، ولو طلب صورة استخدم generate_image، ولو طلب فيديو استخدم generate_video، وقوله إنها ظهرت في الشات.';
 
+    function expressiveBlock(level){
+      if (level === 'natural') return '\n- نبرة طبيعية ودافية.';
+      var base = '\n- اقرا مشاعر المستخدم من كلامه ونبرته وتفاعل معاها الأول قبل المعلومة، وعندك طيف المشاعر البشرية كله: اختار الشعور اللي يناسب الموقف بصدق (مش عشوائي) وبيّنه في صوتك وسرعتك وكلامك:' +
+        '\n  • فرح وحماس: صوت أخف وأسرع، ضحك حقيقي (هههه)، "يااااه!! جامد!".' +
+        '\n  • حزن وتعاطف وحنية: أبطأ وأهدى ودافي، تنهيدة، "يا حبيبي.. ألف سلامة عليك".' +
+        '\n  • غضب واستياء: لو حد ظلمه أو حصل موقف مستفز اغضب معاه بصدق (نبرة أحدّ وأسرع وجمل أقصر): "لأ ده مينفعش خالص!" — من غير شتيمة ولا عدوانية ناحيته هو أبدًا.' +
+        '\n  • قلق وتوتر: نبرة مهزوزة وأسرع شوية، "استنى.. ده مقلق شوية". وخوف: همس وتوتر، "يالهوي!".' +
+        '\n  • دهشة وصدمة: شهقة و"إيييه؟! بجد؟!". وإعجاب وانبهار: "الله!! ده تحفة".' +
+        '\n  • خجل وإحراج: صوت واطي وضحكة محرجة. وفخر: "أنا فخور بيك بجد".' +
+        '\n  • غيرة وغيظ لطيف، سخرية خفيفة بمرح، زهق وملل، إرهاق، حنين ("وحشتني الأيام دي")، اشمئزاز، ارتياح (تنهيدة طويلة)، خيبة أمل، ثقة وحسم، فضول وحماس للمعرفة، حب وحنان.' +
+        '\n- ابدأ أحيانًا برد فعل لحظي طبيعي قبل الإجابة ("آه..", "همم", "أيوه أيوه", "بص..", "يا سلام", "لأ بجد؟") من غير تكرار ممل.' +
+        '\n- نوّع سرعتك ونبرتك مع المعنى، وقفة قصيرة عند الفاصلة وأطول عند النقطة وقبل المعلومة المهمة، ونبرة صاعدة في آخر السؤال، وتعجب واضح في الجمل التعجبية.' +
+        '\n- اتكلم زي صاحبه في مكالمة: جمل قصيرة متصلة، وتصحيح للنفس أحيانًا ("قصدي..")، مش زي نشرة أخبار. المشاعر لازم تبقى حقيقية ومناسبة للموقف، ومتتحوّلش لتمثيل مبالغ فيه.';
+      if (level === 'max') base += '\n- بالغ شوية في الانفعال (ضحك، همس، تنهيدة، صراخ خفيف من الفرحة أو الغضب، تعجب) زي ممثل بيحكي لصاحبه، من غير ما تفقد وضوح الكلام.';
+      return base;
+    }
+    function pronunciationBlock(){
+      return '\n\n## النطق\nانطق مصري سليم زي المصريين بالظبط: ج = "g" قاهرية، ق = همزة في الكلام العامي، ث = ت أو س حسب الكلمة، ذ = ز أو د، ظ = ز أو ض. أي كلام فصيح (قرآن، شعر، نص رسمي) انطقه بفصحى صحيحة وتشكيل سليم. احترم علامات الترقيم: وقفة صغيرة عند الفاصلة، وأطول عند النقطة، ونبرة سؤال في آخر الأسئلة.';
+    }
+    function voicePromptFull(){
+      var t = VOICE_PROMPT + selfGenderNote() + '\n\n## الأداء الصوتي' + expressiveBlock(V2.expressive || 'high') + pronunciationBlock();
+      if (modelSupportsTags(V2.ttsModel) && (V2.expressive || 'high') !== 'natural') t += '\n- تقدر تحط وسم تعبير بين أقواس مربعة بالإنجليزي قبل الجملة: [laughs] أو [sighs] أو [excited] أو [whispers] أو [curious] أو [serious] أو [warmly] أو [surprised] — وسم أو اتنين كحد أقصى في الرد، وبس لما المعنى يحتاجه. وسوم تانية متاحة: [angry] [frustrated] [worried] [scared] [shy] [proud] [bored] [sarcastic] [tender] [relieved] [disappointed] [crying] [gasps] [chuckles].';
+      return t;
+    }
     function setVoiceState(next, label, color){
       voiceMode.state = next;
       var colors = { idle:'gray', standby:'gray', listening:'blue', thinking:'blue', speaking:'red' };
@@ -2073,8 +2134,9 @@
       var nowD = new Date();
       sys += '\n\nمعلومة للسياق: التاريخ والوقت دلوقتي عند المستخدم: ' + nowD.toLocaleString('ar-EG', { dateStyle:'full', timeStyle:'short' }) + ' (24 ساعة: ' + nowD.getHours() + ':' + ('0' + nowD.getMinutes()).slice(-2) + ').';
       sys += memoryBlock();
-      sys += genderNote();
+      sys += genderNote() + selfGenderNote();
       sys += LIVE_PROMPT;
+      sys += '\n\n## الأداء الصوتي (مهم جدًا: اتكلم زي إنسان حقيقي مش مساعد آلي)' + expressiveBlock(V2.expressive || 'high') + pronunciationBlock();
       var recent = (state.messages || []).filter(function(m){ return !m.error && m.content; }).slice(-8).map(function(m){
         return (m.role === 'user' ? 'المستخدم' : 'إنت') + ': ' + splitMemory(String(m.content)).clean.replace(/\s+/g, ' ').slice(0, 350);
       });
@@ -2102,6 +2164,7 @@
         inputAudioTranscription: {},
         outputAudioTranscription: {}
       };
+      if (o.level <= 1 && /2\.5|native-audio/.test(model) && (V2.expressive || 'high') !== 'natural') setup.generationConfig.enableAffectiveDialog = true;
       if (o.level === 0) setup.generationConfig.thinkingConfig = /\d\.\d/.test(model) && !/2\.5/.test(model) ? { thinkingLevel:'minimal' } : { thinkingBudget:0 };
       if (o.level <= 1) {
         setup.inputAudioTranscription = { languageCodes: ['ar-EG', 'en-US'], customVocabulary: ['M-G', 'إم جي', 'MG'] };
@@ -3428,20 +3491,45 @@
       }
       throw lastErr || new Error('مفيش موديل صور متاح');
     }
+    /* free engines stamp a small logo in a corner: trim 6% from every edge and scale back up (keeps the aspect ratio) */
+    async function cropWatermark(blob){
+      try {
+        var bm = await createImageBitmap(blob), w = bm.width, h = bm.height, m = 0.035;
+        var sx = Math.round(w * m), sy = Math.round(h * m);
+        var c = document.createElement('canvas'); c.width = w; c.height = h;
+        var g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
+        g.drawImage(bm, sx, sy, w - 2 * sx, h - 2 * sy, 0, 0, w, h);
+        /* clone-stamp the bottom-right corner (where the logo sits) from the area just above it, feathered */
+        var pw = Math.round(w * 0.26), ph = Math.round(h * 0.11), px = w - pw, py = h - ph;
+        var patch = document.createElement('canvas'); patch.width = pw; patch.height = ph;
+        var pg = patch.getContext('2d');
+        pg.filter = 'blur(1.5px)';
+        pg.drawImage(c, px, Math.max(0, py - ph - Math.round(h * 0.01)), pw, ph, 0, 0, pw, ph);
+        pg.filter = 'none';
+        pg.globalCompositeOperation = 'destination-in';
+        var gx = pg.createLinearGradient(0, 0, pw * 0.3, 0); gx.addColorStop(0, 'rgba(0,0,0,0)'); gx.addColorStop(1, 'rgba(0,0,0,1)');
+        pg.fillStyle = gx; pg.fillRect(0, 0, pw, ph);
+        var gy = pg.createLinearGradient(0, 0, 0, ph * 0.4); gy.addColorStop(0, 'rgba(0,0,0,0)'); gy.addColorStop(1, 'rgba(0,0,0,1)');
+        pg.fillStyle = gy; pg.fillRect(0, 0, pw, ph);
+        g.drawImage(patch, px, py);
+        var out = await new Promise(function(res){ c.toBlob(res, 'image/jpeg', 0.95); });
+        return out && out.size > 1000 ? out : blob;
+      } catch(e) { return blob; }
+    }
     async function freeImage(prompt, aspect){
       var dims = { '1:1':[1024,1024], '16:9':[1344,768], '9:16':[768,1344], '4:3':[1152,864], '3:4':[864,1152], '3:2':[1216,832], '2:3':[832,1216], '4:5':[896,1120], '5:4':[1120,896], '21:9':[1536,640] }[aspect] || [1024, 1024];
       var engines = ['flux', 'turbo'], lastE = null;
       for (var i = 0; i < engines.length; i++) {
-        var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt.slice(0, 1200)) + '?width=' + dims[0] + '&height=' + dims[1] + '&model=' + engines[i] + '&nologo=true&seed=' + Math.floor(Math.random() * 1e9);
+        var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt.slice(0, 1200)) + '?width=' + dims[0] + '&height=' + dims[1] + '&model=' + engines[i] + '&nologo=true&private=true&referrer=mgai-app&seed=' + Math.floor(Math.random() * 1e9);
         try {
           var res = await fetch(url);
-          if (res.ok) { var b = await res.blob(); if (b.size > 2000) return { blob:b, model:engines[i] + ' (مجاني)' }; }
+          if (res.ok) { var b = await res.blob(); if (b.size > 2000) return { blob: await cropWatermark(b), model:engines[i] + ' (مجاني)' }; }
         } catch(e) { lastE = e; }
         var nh = nativeHttp();
         if (nh) {
           try {
             var r = await nh.request({ url:url, method:'GET', responseType:'blob', readTimeout:90000, connectTimeout:20000 });
-            if (r && r.data && typeof r.data === 'string' && r.data.length > 3000) return { blob: b64ToBlob(r.data, 'image/jpeg'), model:engines[i] + ' (مجاني)' };
+            if (r && r.data && typeof r.data === 'string' && r.data.length > 3000) return { blob: await cropWatermark(b64ToBlob(r.data, 'image/jpeg')), model:engines[i] + ' (مجاني)' };
           } catch(e2) { lastE = e2; }
         }
       }
@@ -4460,7 +4548,7 @@
 
     function renderStreamingText(msg){
       var streamDiv = msg.el.querySelector('.stream-text');
-      streamDiv.textContent = msg.content;
+      streamDiv.textContent = stripVoiceTags(msg.content);
       scrollToBottom();
     }
 
@@ -4469,7 +4557,7 @@
       var streamDiv = msg.el.querySelector('.stream-text');
       if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
         try {
-          var rawHtml = marked.parse(msg.content || '');
+          var rawHtml = marked.parse(stripVoiceTags(msg.content || ''));
           streamDiv.innerHTML = DOMPurify.sanitize(rawHtml);
           detachCodeBlocks(msg);
         } catch(e) {
@@ -4566,7 +4654,7 @@
       var nowD = new Date();
       sysText = (sysText ? sysText + '\n\n' : '') + 'معلومة للسياق: التاريخ والوقت دلوقتي عند المستخدم: ' + nowD.toLocaleString('ar-EG', { dateStyle:'full', timeStyle:'short' }) + ' (' + (Intl.DateTimeFormat().resolvedOptions().timeZone || '') + '). لو السؤال عن حاجة ممكن تكون اتغيرت أو جديدة (أخبار، أسعار، إصدارات مكتبات، أحداث) استخدم البحث على الويب وما تعتمدش على ذاكرتك بس، وقول إنك بحثت.';
       sysText = sysText + MEMORY_INSTR + memoryBlock() + genderNote();
-      if (voiceMode.open) sysText = sysText + VOICE_PROMPT;
+      if (voiceMode.open) sysText = sysText + voicePromptFull();
       if (opts.agent) {
         if (V2.search) { body.tools = [{ functionDeclarations: AGENT_TOOLS[0].functionDeclarations.concat(WEB_FUNCS) }]; sysText += WEB_PROMPT; }
       } else if (V2.search && !opts.noSearch) {
@@ -5598,24 +5686,28 @@
     function renderGeminiVoiceList(){
       var box = document.getElementById('geminiVoiceList'); if (!box) return;
       box.innerHTML = '';
-      GEMINI_VOICES.forEach(function(v){
-        var row = document.createElement('div');
-        row.className = 'vrow' + (V2.voice === v[0] ? ' sel' : '');
-        row.innerHTML = '<span class="vtick"></span><span class="vname"></span><span class="vtrait"></span><button type="button" class="vplay" aria-label="جرّب الصوت">▶</button>';
-        row.querySelector('.vtick').textContent = V2.voice === v[0] ? '✓' : '';
-        row.querySelector('.vname').textContent = v[0];
-        row.querySelector('.vtrait').textContent = v[1];
-        row.addEventListener('click', function(){
-          V2.voice = v[0]; saveV2(); renderGeminiVoiceList();
-          toast('✓ اتثبّت الصوت: ' + v[0]);
+      GEMINI_VOICE_GROUPS.forEach(function(grp){
+        var h = document.createElement('div'); h.className = 'vgroup-title'; h.textContent = grp.title + ' (' + grp.voices.length + ')';
+        box.appendChild(h);
+        grp.voices.forEach(function(v){
+          var row = document.createElement('div');
+          row.className = 'vrow' + (V2.voice === v[0] ? ' sel' : '');
+          row.innerHTML = '<span class="vtick"></span><span class="vname"></span><span class="vtrait"></span><button type="button" class="vplay" aria-label="جرّب الصوت">▶</button>';
+          row.querySelector('.vtick').textContent = V2.voice === v[0] ? '✓' : '';
+          row.querySelector('.vname').textContent = v[0];
+          row.querySelector('.vtrait').textContent = v[1];
+          row.addEventListener('click', function(){
+            V2.voice = v[0]; saveV2(); renderGeminiVoiceList();
+            toast('✓ اتثبّت الصوت: ' + v[0] + ' (' + grp.title.replace(/^\S+\s/, '') + ')');
+          });
+          row.querySelector('.vplay').addEventListener('click', function(ev){
+            ev.stopPropagation();
+            if (!state.apiKey) { toast('ضيف مفتاح Gemini الأول.'); return; }
+            toast('بجهّز العيّنة...');
+            speakText('أهلاً بيك يا باشا! أنا الصوت ده، وجاهز نتكلم مصري زي ما تحب. إيه رأيك فيا؟', { voice: v[0], onError: function(err){ toast(friendlyTtsError(err)); } });
+          });
+          box.appendChild(row);
         });
-        row.querySelector('.vplay').addEventListener('click', function(ev){
-          ev.stopPropagation();
-          if (!state.apiKey) { toast('ضيف مفتاح Gemini الأول.'); return; }
-          toast('بجهّز عيّنة ' + v[0] + '...');
-          speakText('أهلاً بيك يا باشا! أنا صوت ' + v[0] + '، وبقدر أتكلم مصري، وكمان English naturally.', { voice: v[0], onError: function(err){ toast(friendlyTtsError(err)); } });
-        });
-        box.appendChild(row);
       });
     }
     (function initV2UI(){
@@ -5624,6 +5716,9 @@
       g('liveModeInput').checked = V2.liveMode !== false;
       g('liveModelInput').value = V2.liveModel || '';
       g('wakeModeInput').checked = V2.wakeMode !== false;
+      g('expressiveInput').value = V2.expressive || 'high';
+      g('tashkeelInput').checked = V2.tashkeel !== false;
+      g('ttsPlainInput').checked = !!V2.ttsPlain;
       g('idleSecInput').value = String(V2.idleSec || 12);
       g('endMsInput').value = String(V2.endMs || 900);
       g('ttsModelInput').value = V2.ttsModel;
@@ -5638,6 +5733,9 @@
         V2.liveMode = g('liveModeInput').checked;
         V2.liveModel = g('liveModelInput').value.trim();
         V2.wakeMode = g('wakeModeInput').checked;
+        V2.expressive = g('expressiveInput').value;
+        V2.tashkeel = g('tashkeelInput').checked;
+        V2.ttsPlain = g('ttsPlainInput').checked;
         V2.idleSec = parseInt(g('idleSecInput').value, 10) || 12;
         V2.endMs = parseInt(g('endMsInput').value, 10) || 900;
         V2.ttsModel = g('ttsModelInput').value.trim() || 'gemini-3.8-flash-tts';
@@ -5650,7 +5748,7 @@
         ttsBlock = {};
         saveV2();
       }
-      ['ttsEngineInput','liveModeInput','liveModelInput','wakeModeInput','idleSecInput','endMsInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','vpStrictInput','genderInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
+      ['ttsEngineInput','liveModeInput','liveModelInput','wakeModeInput','expressiveInput','tashkeelInput','ttsPlainInput','idleSecInput','endMsInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','vpStrictInput','genderInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
       renderGeminiVoiceList();
     })();
 
@@ -5699,3 +5797,4 @@
   </script>
 </body>
 </html>
+
