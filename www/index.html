@@ -673,6 +673,8 @@
       <select id="idleSecInput"><option value="8">٨ ثواني</option><option value="12">١٢ ثانية</option><option value="20">٢٠ ثانية</option><option value="30">٣٠ ثانية</option></select>
       <label for="endMsInput" style="margin-top:8px;">سرعة الرد بعد ما تسكت</label>
       <select id="endMsInput"><option value="700">سريع (ممكن يقاطعك لو بتتمهل)</option><option value="900">متوازن</option><option value="1300">صبور (يستنى لو بتفكر)</option></select>
+      <label for="speedInput" style="margin-top:8px;">سرعة كلام M-G</label>
+      <select id="speedInput"><option value="1">عادي</option><option value="1.15">سريع</option><option value="1.3">أسرع</option><option value="1.45">سريع جدًا</option></select>
       <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="bargeInInput"><span>اسمح بمقاطعته بأي كلام وهو بيتكلم (مش مُوصى بيها). وهي مقفولة، مفيش حاجة بتقطعه غير كلمة «استنى» أو الضغط على الدايرة الحمرا</span></label>
       <div class="hint">اللايف بيشتغل بمفتاح Gemini نفسه وله حصة لوحده غير حصة الشات والقراءة. كلام المكالمة بيتسجّل في الشات.</div>
     </div>
@@ -1226,7 +1228,7 @@
        speech->text (audio is sent to Gemini), and a continuous voice-activity loop so the
        call never "stops hearing you" after the first sentence. */
     var V2_KEY = 'mgai_voice_v2';
-    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:900, sttModel:'', vpStrict:'lenient', gender:'', vpMig2:true, expressive:'high', tashkeel:true, ttsPlain:false };
+    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:700, sttModel:'', vpStrict:'lenient', gender:'male', genderMig:false, speed:1.15, vpMig2:true, expressive:'high', tashkeel:true, ttsPlain:false };
     var GEMINI_VOICE_GROUPS = [
       { title:'👨 رجال', gender:'male', voices:[['Charon','رزين ومعلوماتي'],['Orus','قوي وحازم'],['Alnilam','حازم'],['Schedar','متّزن'],['Algenib','خشن جهوري'],['Rasalgethi','معلوماتي'],['Sadaltager','واسع المعرفة'],['Iapetus','واضح'],['Algieba','ناعم'],['Enceladus','هامس بنَفَس']] },
       { title:'🧑 شباب', gender:'male', voices:[['Puck','مرِح ومتحمس'],['Fenrir','حماسي'],['Sadachbia','حيوي'],['Zubenelgenubi','عفوي'],['Umbriel','مريح وعفوي'],['Achird','ودود']] },
@@ -1254,6 +1256,8 @@
     if (V2.ttsModel === 'gemini-2.5-flash-preview-tts' && !V2.ttsMigrated) { V2.ttsModel = 'gemini-3.8-flash-tts'; V2.ttsMigrated = true; }
     V2.endMs = [700, 900, 1300].reduce(function(best, v){ return Math.abs(v - (V2.endMs || 900)) < Math.abs(best - (V2.endMs || 900)) ? v : best; }, 900);
     if (!V2.vpMig2) { V2.vpStrict = (V2.vpStrict === 'strict') ? 'strict' : 'lenient'; V2.vpMig2 = true; }
+    if (!V2.genderMig) { if (!V2.gender) V2.gender = 'male'; V2.genderMig = true; }
+    V2.speed = Math.min(1.5, Math.max(0.9, parseFloat(V2.speed) || 1.15));
     function saveV2(){ try { localStorage.setItem(V2_KEY, JSON.stringify(V2)); } catch(e) {} }
 
     function toast(msg){
@@ -1310,8 +1314,8 @@
     function ttsPrompt(text){
       /* one short style line + the text: long instructions risked being spoken out loud before the reply */
       if (V2.ttsPlain) return text;
-      if (!/[\u0600-\u06FF]/.test(text)) return 'Say in a warm, natural, expressive voice: ' + text;
-      return 'Say in a warm, expressive Egyptian Arabic (Cairo) voice with natural pauses: ' + text;
+      if (!/[\u0600-\u06FF]/.test(text)) return 'Say in a warm, natural, expressive voice at a brisk conversational pace, without long pauses: ' + text;
+      return 'Say in a warm, expressive Egyptian Arabic (Cairo) voice at a brisk, natural conversational pace, without long pauses at commas or line breaks: ' + text;
     }
     /* smart diacritics (tashkeel): makes pronunciation exact; skipped during live conversations to keep them fast */
     function stripDiac(t){ return String(t || '').replace(/[\u064B-\u0652\u0670\u0640]/g, ''); }
@@ -1732,9 +1736,11 @@
         var ctx = getAudioCtx();
         var s = ctx.createBufferSource();
         s.buffer = buf;
+        s.playbackRate.value = V2.speed || 1;
         var g = ctx.createGain(), t0 = ctx.currentTime + 0.01;   /* soft start and end on every chunk: no clicks between sentences */
         g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(1, t0 + 0.008);
-        g.gain.setValueAtTime(1, Math.max(t0 + 0.009, t0 + buf.duration - 0.03)); g.gain.linearRampToValueAtTime(0.0001, t0 + buf.duration);
+        var pdur = buf.duration / (V2.speed || 1);
+        g.gain.setValueAtTime(1, Math.max(t0 + 0.009, t0 + pdur - 0.03)); g.gain.linearRampToValueAtTime(0.0001, t0 + pdur);
         s.connect(g); g.connect(ctx.destination);
         tts.src = s;
         s.onended = function(){ resolve(); };
@@ -2047,13 +2053,13 @@
         '\n  • خجل وإحراج: صوت واطي وضحكة محرجة. وفخر: "أنا فخور بيك بجد".' +
         '\n  • غيرة وغيظ لطيف، سخرية خفيفة بمرح، زهق وملل، إرهاق، حنين ("وحشتني الأيام دي")، اشمئزاز، ارتياح (تنهيدة طويلة)، خيبة أمل، ثقة وحسم، فضول وحماس للمعرفة، حب وحنان.' +
         '\n- ابدأ أحيانًا برد فعل لحظي طبيعي قبل الإجابة ("آه..", "همم", "أيوه أيوه", "بص..", "يا سلام", "لأ بجد؟") من غير تكرار ممل.' +
-        '\n- نوّع سرعتك ونبرتك مع المعنى، وقفة قصيرة عند الفاصلة وأطول عند النقطة وقبل المعلومة المهمة، ونبرة صاعدة في آخر السؤال، وتعجب واضح في الجمل التعجبية.' +
+        '\n- اتكلم بسرعة إنسان في مكالمة، متصل وسلس، من غير وقفات عند الفاصلة أو النقطة أو السطر الجديد؛ نوّع النبرة مع المعنى من غير ما تبطّأ.' +
         '\n- اتكلم زي صاحبه في مكالمة: جمل قصيرة متصلة، وتصحيح للنفس أحيانًا ("قصدي..")، مش زي نشرة أخبار. المشاعر لازم تبقى حقيقية ومناسبة للموقف، ومتتحوّلش لتمثيل مبالغ فيه.';
       if (level === 'max') base += '\n- بالغ شوية في الانفعال (ضحك، همس، تنهيدة، صراخ خفيف من الفرحة أو الغضب، تعجب) زي ممثل بيحكي لصاحبه، من غير ما تفقد وضوح الكلام.';
       return base;
     }
     function pronunciationBlock(){
-      return '\n\n## النطق (لهجة القاهرة 100%)\n- لهجتك قاهرية بس: مش صعيدي ولا سعودي ولا شامي ولا سوداني ولا مغربي، ومش فصحى في الكلام العادي.\n- حرف ق في الكلام العامي بيتنطق همزة: اقعد = "أُعد"، قال = "آل"، قلب = "أَلب"، قدام = "أُدّام"، قهوة = "أَهوة"، قوي = "أَوي"، فوق = "فُوأ". ممنوع تنطقه "g" ولا "q" (دي صعيدي/خليجي).\n- ج بتتنطق g قاهرية، ث = ت أو س حسب الكلمة (تلاتة، تعبان، سابت)، ذ = ز أو د، ظ = ز أو ض.\n- الكلام الفصيح جوه الكلام (آيات، شعر، مصطلحات رسمية) انطقه فصحى سليمة بتشكيل صحيح.\n- ثبّت نفس الصوت ونفس الطبقة ونفس الشخصية طول المحادثة: التغيير بيكون في الإحساس والإيقاع بس، مش في نوع الصوت أو طبقته.\n- احترم علامات الترقيم: وقفة صغيرة عند الفاصلة، وأطول عند النقطة، ونبرة سؤال في آخر الأسئلة، وتعجب واضح في الجمل التعجبية.';
+      return '\n\n## النطق (لهجة القاهرة 100%)\n- لهجتك قاهرية بس: مش صعيدي ولا سعودي ولا شامي ولا سوداني ولا مغربي، ومش فصحى في الكلام العادي.\n- حرف ق في الكلام العامي بيتنطق همزة: اقعد = "أُعد"، قال = "آل"، قلب = "أَلب"، قدام = "أُدّام"، قهوة = "أَهوة"، قوي = "أَوي"، فوق = "فُوأ". ممنوع تنطقه "g" ولا "q" (دي صعيدي/خليجي).\n- ج بتتنطق g قاهرية، ث = ت أو س حسب الكلمة (تلاتة، تعبان، سابت)، ذ = ز أو د، ظ = ز أو ض.\n- الكلام الفصيح جوه الكلام (آيات، شعر، مصطلحات رسمية) انطقه فصحى سليمة بتشكيل صحيح.\n- ثبّت نفس الصوت ونفس الطبقة ونفس الشخصية طول المحادثة: التغيير بيكون في الإحساس والإيقاع بس، مش في نوع الصوت أو طبقته.\n- كمّل الكلام متصل بسرعة طبيعية؛ علامات الترقيم والسطور مش وقفات.';
     }
     function voicePromptFull(){
       var t = VOICE_PROMPT + selfGenderNote() + '\n\n## الأداء الصوتي' + expressiveBlock(V2.expressive || 'high') + pronunciationBlock();
@@ -2267,17 +2273,22 @@
 - لو قال "سلام" أو "خلاص كده" أو "شكرًا" وعايز ينهي المحادثة: قول وداع قصير واستخدم end_conversation.`;
 
     function buildLiveSystem(){
-      var sys = (state.systemPrompt && state.systemPrompt.trim()) ? state.systemPrompt : '';
+      var vg = voiceGender(V2.voice);
+      var sys = '[قواعد ثابتة — أهم من أي حاجة تانية]\n';
+      sys += V2.gender === 'female'
+        ? '- المستخدمة بنت: خاطبها بالمؤنث دايمًا (إنتي، جاهزة، عايزة).\n'
+        : '- المستخدم راجل: خاطبه بالمذكر دايمًا (إنت، جاهز، عايز). ممنوع تخاطبه بالمؤنث ولا مرة.\n';
+      if (vg === 'female') sys += '- صوتك أنثوي: اتكلم عن نفسك بالمؤنث (أنا جاهزة)، وده ميأثرش أبدًا على طريقة مخاطبتك للمستخدم.\n';
+      if (vg === 'male') sys += '- صوتك ذكوري: اتكلم عن نفسك بالمذكر (أنا جاهز)، وده ميأثرش على طريقة مخاطبتك للمستخدم.\n';
+      sys += '- إنت M-G، مساعد المبرمج محمود جابر. متذكرش Gemini ولا Google ولا أي شركة.\n';
+      sys += '- اتكلم بسرعة إنسان مصري عادي في مكالمة، متصل وسلس. الفاصلة والنقطة وسطر جديد مش وقفة، كمّل من غير توقف مصطنع.\n';
+      sys += '- ابدأ الرد فورًا من غير مقدمة ومن غير ما تعيد صياغة السؤال.\n';
+      sys += '- لو الصوت مش واضح أو مش متأكد سمعت إيه، قول "مسمعتش، قول تاني" بدل ما تخمّن. ممنوع تخترع كلام المستخدم أو تردّ على كلام مسمعتهوش.\n';
       var nowD = new Date();
-      sys += '\n\nمعلومة للسياق: التاريخ والوقت دلوقتي عند المستخدم: ' + nowD.toLocaleString('ar-EG', { dateStyle:'full', timeStyle:'short' }) + ' (24 ساعة: ' + nowD.getHours() + ':' + ('0' + nowD.getMinutes()).slice(-2) + ').';
+      sys += '\nالوقت دلوقتي: ' + nowD.getHours() + ':' + ('0' + nowD.getMinutes()).slice(-2) + '، ' + nowD.toLocaleDateString('ar-EG', { dateStyle:'full' }) + '.';
       sys += memoryBlock();
-      sys += genderNote() + selfGenderNote();
       sys += LIVE_PROMPT;
-      sys += '\n\n## الأداء الصوتي (مهم جدًا: اتكلم زي إنسان حقيقي مش مساعد آلي)' + expressiveBlock(V2.expressive || 'high') + pronunciationBlock();
-      var recent = (state.messages || []).filter(function(m){ return !m.error && m.content; }).slice(-8).map(function(m){
-        return (m.role === 'user' ? 'المستخدم' : 'إنت') + ': ' + splitMemory(String(m.content)).clean.replace(/\s+/g, ' ').slice(0, 350);
-      });
-      if (recent.length) sys += '\n\nآخر الكلام في الشات قبل المكالمة (للسياق بس):\n' + recent.join('\n');
+      sys += '\n\n## المشاعر والأداء (اتكلم زي إنسان حقيقي مش مساعد آلي)' + expressiveBlock(V2.expressive || 'high');
       return sys;
     }
 
@@ -2305,9 +2316,9 @@
       if (o.level <= 2 && /2\.5|native-audio/.test(model) && (V2.expressive || 'high') !== 'natural') setup.generationConfig.enableAffectiveDialog = true;
       if (o.level <= 1) setup.generationConfig.thinkingConfig = /\d\.\d/.test(model) && !/2\.5/.test(model) ? { thinkingLevel:'minimal' } : { thinkingBudget:0 };
       if (o.level <= 2) {
-        setup.inputAudioTranscription = { languageCodes: ['ar-EG', 'en-US'], customVocabulary: ['M-G', 'إم جي', 'MG'] };
-        setup.realtimeInputConfig = { automaticActivityDetection: { endOfSpeechSensitivity:'END_SENSITIVITY_LOW', silenceDurationMs: Math.max(450, (V2.endMs || 800) - 200), prefixPaddingMs:120 }, turnCoverage:'TURN_INCLUDES_ONLY_ACTIVITY' };
-        setup.proactivity = { proactiveAudio: true };
+        /* (اتشال languageCodes/customVocabulary: بيوقّعوا الاتصال على مستوى أضعف) */
+        setup.realtimeInputConfig = { automaticActivityDetection: { startOfSpeechSensitivity:'START_SENSITIVITY_HIGH', endOfSpeechSensitivity:'END_SENSITIVITY_LOW', prefixPaddingMs:200, silenceDurationMs:500 } };
+        /* (اتشال proactiveAudio: كان بيخليه يرد على أي صوت حواليك) */
         setup.contextWindowCompression = { slidingWindow: {} };
         setup.sessionResumption = o.handle ? { handle: o.handle } : {};
         setup.tools = liveTools(o.search);
@@ -2328,7 +2339,7 @@
       return new Promise(function(resolve, reject){
         var ws, done = false, timer;
         function fail(e){ if (done) return; done = true; clearTimeout(timer); try { ws.close(); } catch(_) {} reject(e); }
-        try { ws = new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(o.key || state.apiKey)); }
+        try { ws = new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.' + (o.level <= 2 ? 'v1alpha' : 'v1beta') + '.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(o.key || state.apiKey)); }
         catch (e) { reject(e); return; }
         timer = setTimeout(function(){ fail(new Error('الاتصال اتأخر (timeout)')); }, 12000);
         var q = Promise.resolve();
@@ -2368,7 +2379,7 @@
             tried++;
             try {
               var ws = await liveOpen(models[i], { level:level, search:withSearch, handle: V2.wakeMode ? null : live.handle, key:keys[ki] });
-              live.ws = ws; live.model = models[i]; live.ready = true; live.retries = 0; live.level = level;
+              live.ws = ws; live.model = models[i]; live.ready = true; live.retries = 0; live.level = level; live.bid = bid;
               V2.liveModelOk = models[i]; saveV2();
               live.sendBuf = []; live.sendLen = 0; live.talk = false; live.pre = [];
               liveResetPlayback();
@@ -2444,13 +2455,13 @@
     function liveEnqueueAudio(b64, rate){
       if (live.drop) return;
       var ctx = getAudioCtx(); if (!ctx) return;
-      var buf = pcmToBuffer(b64, rate || 24000);
+      var buf = pcmToBuffer(b64, rate || 24000), sp = V2.speed || 1, dur = buf.duration / sp;
       var s = ctx.createBufferSource(), gn = liveGain(ctx), first = !live.speaking;
-      s.buffer = buf; s.connect(gn);
+      s.buffer = buf; s.playbackRate.value = sp; s.connect(gn);
       var t = Math.max(ctx.currentTime + 0.03, live.nextT);
       if (first) { gn.gain.cancelScheduledValues(ctx.currentTime); gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(1, t + 0.012); }
       s.start(t);
-      live.nextT = t + buf.duration;
+      live.nextT = t + dur;
       live.sources.push(s);
       s.onended = function(){
         var i = live.sources.indexOf(s); if (i !== -1) live.sources.splice(i, 1);
@@ -2661,14 +2672,14 @@
       if (!live.talk) {
         if (!isLoud && !live.cand) mic.floor = Math.min(0.05, Math.max(0.002, mic.floor * 0.96 + rms * 0.04));
         if (!enrolled) {
-          live.pre.push(copy); if (live.pre.length > 9) live.pre.shift();
+          live.pre.push(copy); if (live.pre.length > 16) live.pre.shift();
           live.loud = isLoud ? live.loud + 1 : 0;
           if (live.loud >= 3) { live.loud = 0; var pf = live.pre; live.pre = []; liveStartTalk(pf, sr); }
           return;
         }
         cd = live.cand;
         if (!cd) {
-          live.pre.push(copy); if (live.pre.length > 12) live.pre.shift();
+          live.pre.push(copy); if (live.pre.length > 16) live.pre.shift();
           live.loud = isLoud ? live.loud + 1 : 0;
           if (live.loud >= 3) { live.loud = 0; live.cand = { frames: live.pre.slice(), voiced:0, sil:0, lastCheck:0 }; live.pre = []; }
           return;
@@ -2678,7 +2689,7 @@
         if (isLoud) { cd.voiced += frameMs; cd.sil = 0; } else cd.sil += frameMs;
         if (cd.voiced >= 450 && cd.voiced - cd.lastCheck >= 300) {
           cd.lastCheck = cd.voiced;
-          if (vpVerify(cd.frames.slice(-22), sr).ok) { liveStartTalk(cd.frames.slice(-26), sr); return; }   /* judge the latest ~1s only, so a TV/another person just before you can't poison it */
+          if (vpVerify(cd.frames.slice(-22), sr).ok) { liveStartTalk(cd.frames.slice(-70), sr); return; }   /* judge the latest ~1s only, so a TV/another person just before you can't poison it */
           if (cd.voiced > 2600) { live.cand = null; showForeignVoice(); return; }
         }
         if (cd.sil > 700) live.cand = null;
@@ -2708,6 +2719,12 @@
       if (live.closing || !voiceMode.open || voiceMode.paused) return;
       if (!voiceMode.live) return;   /* a pre-warmed idle session closed: reconnect on demand */
       liveFlushTurn();
+      if (/quota|exhaust|429|1011|RESOURCE/i.test(String((ev && ev.reason) || '')) && live.retries < 4) {
+        liveBlock[live.bid] = Date.now() + 8 * 60000; live.retries++;
+        setVoiceState('thinking', 'الحصة خلصت.. بغيّر المفتاح', 'blue');
+        ensureLive().then(function(){ liveResetPlayback(); setVoiceState('listening', 'سامعك.. اتكلم', 'blue'); }).catch(function(){ closeDialogue('lost'); });
+        return;
+      }
       if (V2.wakeMode) { toast('الاتصال اتقطع — رجعت لوضع الانتظار.'); closeDialogue('lost'); return; }
       if (live.retries < 6) {
         live.retries++;
@@ -5870,7 +5887,8 @@
       g('tashkeelInput').checked = V2.tashkeel !== false;
       g('ttsPlainInput').checked = !!V2.ttsPlain;
       g('idleSecInput').value = String(V2.idleSec || 12);
-      g('endMsInput').value = String(V2.endMs || 900);
+      g('endMsInput').value = String(V2.endMs || 700);
+      g('speedInput').value = String(V2.speed || 1.15);
       g('ttsModelInput').value = V2.ttsModel;
       g('bargeInInput').checked = !!V2.bargeIn;
       g('thinkingInput').value = V2.thinking;
@@ -5887,7 +5905,8 @@
         V2.tashkeel = g('tashkeelInput').checked;
         V2.ttsPlain = g('ttsPlainInput').checked;
         V2.idleSec = parseInt(g('idleSecInput').value, 10) || 12;
-        V2.endMs = parseInt(g('endMsInput').value, 10) || 900;
+        V2.endMs = parseInt(g('endMsInput').value, 10) || 700;
+        V2.speed = parseFloat(g('speedInput').value) || 1.15;
         V2.ttsModel = g('ttsModelInput').value.trim() || 'gemini-3.8-flash-tts';
         V2.bargeIn = g('bargeInInput').checked;
         V2.thinking = g('thinkingInput').value;
@@ -5898,7 +5917,7 @@
         ttsBlock = {};
         saveV2();
       }
-      ['ttsEngineInput','liveModeInput','liveModelInput','wakeModeInput','expressiveInput','tashkeelInput','ttsPlainInput','idleSecInput','endMsInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','vpStrictInput','genderInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
+      ['ttsEngineInput','liveModeInput','liveModelInput','wakeModeInput','expressiveInput','tashkeelInput','ttsPlainInput','idleSecInput','endMsInput','speedInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','vpStrictInput','genderInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
       renderGeminiVoiceList();
     })();
 
