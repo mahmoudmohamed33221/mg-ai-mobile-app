@@ -701,7 +701,7 @@
       <label for="ttsModelInput" style="margin-top:8px;">موديل Gemini للقراءة</label>
       <input type="text" id="ttsModelInput" placeholder="gemini-3.8-flash-tts" autocomplete="off" spellcheck="false" dir="ltr">
       <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="ttsPlainInput"><span>اقرا النص زي ما هو من غير أي تعليمات أسلوب (فعّلها لو سمعته بيقول كلام إنجليزي قبل الرد)</span></label>
-      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="tashkeelInput"><span>تشكيل ذكي قبل القراءة (نطق أدق، بيضيف ثانية تقريبًا)</span></label>
+      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="tashkeelInput"><span>ضبط النطق المصري قبل القراءة: تشكيل + نطق القاف والجيم والثاء زي القاهرة (اقعد = أُعد). بيضيف حوالي ثانية</span></label>
       <button type="button" class="text-btn" id="voiceTestBtn" style="width:100%;padding:10px;margin-top:8px;">🔊 جرّب الصوت المثبّت</button>
       <div class="hint">كل جملة بتتقري بتتسجّل على تليفونك، فلو اتقرت تاني بتشتغل فورًا ومن غير ما تستهلك من الحصة.</div>
     </div>
@@ -1273,7 +1273,7 @@
     function getAudioCtx(){
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
-      if (!audioCtx) audioCtx = new AC();
+      if (!audioCtx) { try { audioCtx = new AC({ sampleRate: 24000 }); } catch(e) { audioCtx = new AC(); } }   /* Gemini speaks at 24 kHz: playing it natively avoids resampling clicks */
       if (audioCtx.state === 'suspended') { try { audioCtx.resume(); } catch(e) {} }
       return audioCtx;
     }
@@ -1315,28 +1315,44 @@
     }
     /* smart diacritics (tashkeel): makes pronunciation exact; skipped during live conversations to keep them fast */
     function stripDiac(t){ return String(t || '').replace(/[\u064B-\u0652\u0670\u0640]/g, ''); }
-    async function diacritize(text){
-      var key = 'dia|' + hashStr(text), hit = await ttsCacheGet(key);
+    var PRON_PROMPT = 'حوّل النص ده لكتابة صوتية بالنطق المصري القاهري الحقيقي زي ما بيتقال في الكلام اليومي، مع التشكيل الكامل، عشان قارئ صوتي ينطقه بالظبط زي ابن القاهرة (مش صعيدي ولا خليجي ولا شامي).\nالقواعد:\n- حرف ق في الكلمات العامية بيتحول لهمزة: اقعد → أُعْد، قال → آل، قلب → أَلب، قدام → أُدّام، قهوة → أَهوة، قوي → أَوي، فوق → فُوأ، قريب → أُرَيِّب.\n- ج بتفضل ج (المصري بينطقها g) من غير تغيير، ث → ت أو س زي النطق (تلاتة، تعبان، سابت)، ذ → ز أو د، ظ → ض أو ز.\n- كلمات عامية تتشكل بالنطق المصري الفعلي (إزَّاي، دَلوَقتي، عَايِز، مَعلِش).\n- لو الكلام فصحى أو آية أو شعر أو مصطلح رسمي: سيبه بفصحى صحيحة بالتشكيل الفصيح (ق تفضل ق).\n- عدد الكلمات لازم يفضل زي ما هو بالظبط وبنفس الترتيب: ممنوع تضيف أو تحذف أو تدمج أو تترجم. سيب الأرقام والكلمات الإنجليزية وعلامات الترقيم والإيموجي زي ما هي.\nاطبع النص المحوّل بس من غير أي شرح.\n\nالنص:\n';
+    function validPron(a, b){
+      var wa = a.trim().split(/\s+/), wb = String(b || '').trim().split(/\s+/);
+      if (!b || wa.length !== wb.length) return false;
+      for (var i = 0; i < wa.length; i++) {
+        if (/[A-Za-z0-9]/.test(wa[i])) { if (stripDiac(wa[i]) !== stripDiac(wb[i])) return false; }
+        else if (Math.abs(stripDiac(wa[i]).length - stripDiac(wb[i]).length) > 3) return false;
+      }
+      return true;
+    }
+    async function diacritize(text, tmo){
+      var key = 'pron2|' + hashStr(text), hit = await ttsCacheGet(key);
       if (hit && hit.t) return hit.t;
       var g = await Promise.race([
-        geminiSide('ضع التشكيل الكامل (الحركات) على النص التالي بحيث يُنطق بالضبط كما سيُقال. لو النص بالعامية المصرية شكّله بالنطق المصري الفعلي (مثل: إزَّاي، دَلوَقتي، عَايِز) وليس بالفصحى، ولو فصحى فبالتشكيل الفصيح الصحيح. ممنوع تغيّر أي كلمة أو تضيف أو تحذف أو تترجم. أبقِ الأرقام والكلمات الإنجليزية وعلامات الترقيم كما هي. اطبع النص المشكّل فقط.\n\n' + text),
-        new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('tashkeel timeout')); }, 7000); })
+        geminiSide(PRON_PROMPT + text),
+        new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('pronunciation timeout')); }, tmo || 7000); })
       ]);
-      var out = (g.text || '').trim();
-      if (!out || stripDiac(out).replace(/\s+/g, ' ').trim() !== stripDiac(text).replace(/\s+/g, ' ').trim()) return text;   /* never accept a rewrite */
+      var out = (g.text || '').trim().replace(/^["'`]+|["'`]+$/g, '');
+      if (!validPron(text, out)) return text;   /* never accept a rewrite that changes the words */
       ttsCachePut(key, { t: out, ts: Date.now() });
       return out;
     }
 
-    function pcmToBuffer(b64, rate){
+    function pcmToBuffer(b64, rate, polish){
       var bin = atob(b64), n = bin.length >> 1;
       var ctx = getAudioCtx();
-      var buf = ctx.createBuffer(1, Math.max(1, n), rate);
-      var ch = buf.getChannelData(0);
-      for (var i = 0; i < n; i++) {
+      var trim = polish ? Math.min(Math.floor(0.025 * rate), Math.floor(n / 4)) : 0, len = Math.max(1, n - trim);
+      var buf = ctx.createBuffer(1, len, rate);
+      var ch = buf.getChannelData(0), i;
+      for (i = 0; i < len; i++) {
         var v = bin.charCodeAt(2*i) | (bin.charCodeAt(2*i+1) << 8);
         if (v & 0x8000) v -= 0x10000;
         ch[i] = v / 32768;
+      }
+      if (polish) {
+        var fi = Math.min(Math.floor(0.008 * rate), len >> 2), fo = Math.min(Math.floor(0.04 * rate), len >> 1);
+        for (i = 0; i < fi; i++) ch[i] *= i / fi;
+        for (i = 0; i < fo; i++) ch[len - 1 - i] *= i / fo;
       }
       return buf;
     }
@@ -1443,7 +1459,7 @@
       var hit = await ttsCacheGet(ttsCacheKey(voice, '', text));
       if (!hit) hit = await ttsCacheGet(ttsCacheKey(voice, V2.ttsModel, text));
       if (!hit) hit = await ttsCacheGet(ttsCacheKey(voice, 'gemini-2.5-flash-preview-tts', text));
-      if (hit && hit.b64) return pcmToBuffer(hit.b64, hit.rate || 24000);
+      if (hit && hit.b64) return pcmToBuffer(hit.b64, hit.rate || 24000, true);
       var models = await ttsModelOrder(), keys = ttsKeys();
       var lastErr = null, minWait = Infinity, anyDaily = false;
       function bodyFor(model){
@@ -1479,7 +1495,7 @@
               var rate = rm ? parseInt(rm[1], 10) : 24000;
               ttsCachePut(ttsCacheKey(voice, '', text), { b64: ap.data, rate: rate, t: Date.now() });
               if (models[mi] !== V2.ttsModel && !V2._warned) { V2._warned = true; toast('كمّلت بموديل الصوت ' + models[mi]); }
-              return pcmToBuffer(ap.data, rate);
+              return pcmToBuffer(ap.data, rate, true);
             } catch (err) {
               if (err && err.name === 'AbortError') throw err;
               lastErr = err;
@@ -1548,26 +1564,144 @@
     }
 
     /* picks the best available engine for one chunk: Gemini -> Google -> (null = device voice) */
+    /* ---------- voices that always work: same-voice via Live, then free online voices ---------- */
+    var engBlock = {}, ttsQuotaFail = 0, lastFallbackNote = 0;
+    function engBlocked(n){ return engBlock[n] > Date.now(); }
+    function engFail(n, ms){ engBlock[n] = Date.now() + (ms || 180000); }
+    function bytesFromB64(b64){ var bin = atob(b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; }
+    async function decodeAudioBytes(buf){
+      var ctx = getAudioCtx();
+      return await new Promise(function(res, rej){ var p = ctx.decodeAudioData(buf.slice(0), res, rej); if (p && p.then) p.then(res, rej); });
+    }
+    async function httpBytes(url, headers){
+      var nh = nativeHttp();
+      if (nh) {
+        try {
+          var h = { 'User-Agent': WEB_UA }; Object.keys(headers || {}).forEach(function(k){ h[k] = headers[k]; });
+          var r = await nh.request({ url:url, method:'GET', headers:h, responseType:'blob', readTimeout:25000, connectTimeout:15000 });
+          if (r && r.status < 400 && typeof r.data === 'string' && r.data.length > 400) return bytesFromB64(r.data);
+        } catch(e) {}
+      }
+      var res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var ab = await res.arrayBuffer();
+      if (ab.byteLength < 300) throw new Error('رد فاضي');
+      return ab;
+    }
+    function concatBuffers(bufs){
+      if (bufs.length === 1) return bufs[0];
+      var total = 0, i; for (i = 0; i < bufs.length; i++) total += bufs[i].length;
+      var ctx = getAudioCtx(), out = ctx.createBuffer(1, total, bufs[0].sampleRate), ch = out.getChannelData(0), off = 0;
+      for (i = 0; i < bufs.length; i++) { ch.set(bufs[i].getChannelData(0), off); off += bufs[i].length; }
+      return out;
+    }
+    function splitForEngine(text, max){
+      var out = [], rest = String(text).trim();
+      while (rest.length > max) { var cut = Math.max(rest.lastIndexOf('. ', max), rest.lastIndexOf('، ', max), rest.lastIndexOf(' ', max)); if (cut < 40) cut = max; out.push(rest.slice(0, cut + 1).trim()); rest = rest.slice(cut + 1).trim(); }
+      if (rest) out.push(rest);
+      return out;
+    }
+    async function pollinationsAudio(text, voice){
+      var v = voiceGender(voice || V2.voice) === 'male' ? 'onyx' : 'nova', out = [], pieces = splitForEngine(text, 260);
+      for (var i = 0; i < pieces.length; i++) out.push(await decodeAudioBytes(await httpBytes('https://text.pollinations.ai/' + encodeURIComponent(pieces[i]) + '?model=openai-audio&voice=' + v)));
+      return concatBuffers(out);
+    }
+    async function googleTranslateAudio(text){
+      var ar = (text.match(/[\u0600-\u06FF]/g) || []).length, la = (text.match(/[A-Za-z]/g) || []).length, lang = ar >= la ? 'ar' : 'en', out = [], pieces = splitForEngine(text, 170);
+      for (var i = 0; i < pieces.length; i++) out.push(await decodeAudioBytes(await httpBytes('https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=' + lang + '&q=' + encodeURIComponent(pieces[i]), { 'Referer':'https://translate.google.com/' })));
+      return concatBuffers(out);
+    }
+    async function pollyAudio(text){
+      var ar = /[\u0600-\u06FF]/.test(text), out = [], pieces = splitForEngine(text, 240);
+      for (var i = 0; i < pieces.length; i++) out.push(await decodeAudioBytes(await httpBytes('https://api.streamelements.com/kappa/v2/speech?voice=' + (ar ? 'Zeina' : 'Brian') + '&text=' + encodeURIComponent(pieces[i]))));
+      return concatBuffers(out);
+    }
+
+    /* the same Gemini voice you picked, spoken through the Live API (its own, separate quota) */
+    function liveSpeakOnce(model, key, voice, text){
+      return new Promise(function(resolve, reject){
+        var ws, done = false, chunks = [], timer, q = Promise.resolve();
+        function finish(err){ if (done) return; done = true; clearTimeout(timer); try { ws.close(); } catch(e) {} if (err) reject(err); else resolve(chunks); }
+        try { ws = new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(key)); }
+        catch (e) { reject(e); return; }
+        timer = setTimeout(function(){ finish(new Error('اللايف اتأخر في القراءة')); }, 30000);
+        ws.onopen = function(){
+          ws.send(JSON.stringify({ setup:{
+            model:'models/' + model,
+            generationConfig:{ responseModalities:['AUDIO'], speechConfig:{ voiceConfig:{ prebuiltVoiceConfig:{ voiceName:voice } } } },
+            systemInstruction:{ parts:[{ text:'إنت قارئ صوتي فقط. وظيفتك الوحيدة تنطق النص اللي بيتبعتلك حرفيًا كلمة بكلمة وبنفس الترتيب، بلهجة مصرية دافية ومعبّرة وبإحساس يناسب المعنى، مع احترام علامات الترقيم والوقفات. ممنوع تضيف أو تحذف أو تعلّق أو ترحّب أو تشرح أو تردّ على النص.' }] }
+          } }));
+        };
+        ws.onmessage = function(ev){
+          q = q.then(function(){ return readWsData(ev.data); }).then(function(t){
+            var m; try { m = JSON.parse(t); } catch(e) { return; }
+            if (m.setupComplete) { ws.send(JSON.stringify({ realtimeInput:{ text:'انطق النص التالي حرفيًا من غير أي إضافة:\n\n' + text } })); return; }
+            if (m.error) { finish(new Error((m.error.message || 'live error').slice(0, 160))); return; }
+            var sc = m.serverContent;
+            if (sc) {
+              if (sc.modelTurn && sc.modelTurn.parts) sc.modelTurn.parts.forEach(function(p){ if (p.inlineData && p.inlineData.data) chunks.push(p.inlineData.data); });
+              if (sc.turnComplete) finish(null);
+            }
+          });
+        };
+        ws.onerror = function(){ finish(new Error('WebSocket error')); };
+        ws.onclose = function(ev){ if (!done) { if (chunks.length) finish(null); else finish(new Error('closed ' + ev.code + (ev.reason ? ' — ' + ev.reason : ''))); } };
+      });
+    }
+    async function liveSpeak(text, voice){
+      var models = await liveModelOrder(), keys = ttsKeys(), lastErr = null;
+      for (var mi = 0; mi < models.length && mi < 3; mi++) {
+        for (var ki = 0; ki < keys.length; ki++) {
+          var bid = models[mi] + '|' + keys[ki].slice(-6);
+          if (liveBlock[bid] > Date.now()) continue;
+          try {
+            var chunks = await liveSpeakOnce(models[mi], keys[ki], voice, text);
+            var parts = chunks.map(bytesFromB64), total = 0, i;
+            parts.forEach(function(a){ total += a.byteLength; });
+            if (total < 2000) throw new Error('اللايف مرجّعش صوت');
+            var all = new Uint8Array(total), off = 0;
+            parts.forEach(function(a){ all.set(new Uint8Array(a), off); off += a.byteLength; });
+            var b64 = bytesToB64(all);
+            ttsCachePut(ttsCacheKey(voice, '', text), { b64:b64, rate:24000, t:Date.now() });
+            return pcmToBuffer(b64, 24000, true);
+          } catch (e) {
+            lastErr = e;
+            if (/quota|exceeded|exhausted|429|1011/i.test(String((e && e.message) || ''))) liveBlock[bid] = Date.now() + 8 * 60000;
+          }
+        }
+      }
+      throw lastErr || new Error('اللايف مش متاح للقراءة');
+    }
+
     async function ttsProvide(text, signal, voice){
       var eng = (tts.opts && tts.opts.engine) || V2.ttsEngine || 'auto';
       if (eng === 'device') return null;
-      var gemErr = null;
-      if ((eng === 'auto' || eng === 'gemini') && !voiceMode.open && V2.tashkeel !== false && /[\u0600-\u06FF]/.test(text) && text.length <= 600) {
-        try { text = await diacritize(text); } catch(e) { /* read it as is */ }
+      var notes = [], orig = text, family = (eng === 'auto' || eng === 'gemini'), i;
+      if (family && V2.tashkeel !== false && /[\u0600-\u06FF]/.test(text) && text.length <= 600 && Date.now() - ttsQuotaFail > 300000) {
+        try { text = await diacritize(text, voiceMode.open ? 3500 : 7000); } catch(e) { /* read it as is */ }
       }
-      if (eng === 'auto' || eng === 'gemini') {
+      if (family) {
         try { return { kind:'buf', buf: await geminiTtsAudio(text, signal, voice) }; }
-        catch (e) { if (e && e.name === 'AbortError') throw e; gemErr = e; if (eng === 'gemini') throw e; }
+        catch (e) { if (e && e.name === 'AbortError') throw e; notes.push(e); if (e && e.status === 429) ttsQuotaFail = Date.now(); }
+        var hit = await ttsCacheGet(ttsCacheKey(voice || V2.voice, '', text));
+        if (hit && hit.b64) return { kind:'buf', buf: pcmToBuffer(hit.b64, hit.rate || 24000, true) };
+        if (!engBlocked('livespeak')) {
+          try { var lb = await liveSpeak(text, voice || V2.voice); if (Date.now() - lastFallbackNote > 300000) { lastFallbackNote = Date.now(); toast('حصة صوت القراءة خلصت — بقرا بنفس الصوت من اللايف.'); } return { kind:'buf', buf: lb }; }
+          catch (e2) { if (e2 && e2.name === 'AbortError') throw e2; engFail('livespeak', 150000); notes.push(e2); }
+        }
+        if (eng === 'gemini') throw notes[0];
       }
-      try {
-        var els = await googleTtsElements(text);
-        if (gemErr) ttsReportError(gemErr);
-        return { kind:'els', els: els };
-      } catch (e2) {
-        if (e2 && e2.name === 'AbortError') throw e2;
-        if (eng === 'google') throw e2;
+      var chain = [['pollinations', pollinationsAudio], ['gtranslate', googleTranslateAudio], ['polly', pollyAudio]];
+      for (i = 0; i < chain.length; i++) {
+        if (engBlocked(chain[i][0])) continue;
+        try {
+          var b = await chain[i][1](orig, voice || V2.voice);
+          if (notes.length && Date.now() - lastFallbackNote > 300000) { lastFallbackNote = Date.now(); toast('الحصة خلصت — بقرا بصوت بديل مجاني (مش نفس الصوت المختار).'); }
+          return { kind:'buf', buf:b };
+        } catch (e3) { if (e3 && e3.name === 'AbortError') throw e3; engFail(chain[i][0], 180000); notes.push(e3); }
       }
-      if (gemErr) ttsReportError(gemErr);
+      tts.lastFail = notes.map(errShort).slice(0, 3).join(' | ');
+      if (notes.length) ttsReportError(notes[0]);
       return null;
     }
 
@@ -1598,10 +1732,13 @@
         var ctx = getAudioCtx();
         var s = ctx.createBufferSource();
         s.buffer = buf;
-        s.connect(ctx.destination);
+        var g = ctx.createGain(), t0 = ctx.currentTime + 0.01;   /* soft start and end on every chunk: no clicks between sentences */
+        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(1, t0 + 0.008);
+        g.gain.setValueAtTime(1, Math.max(t0 + 0.009, t0 + buf.duration - 0.03)); g.gain.linearRampToValueAtTime(0.0001, t0 + buf.duration);
+        s.connect(g); g.connect(ctx.destination);
         tts.src = s;
         s.onended = function(){ resolve(); };
-        s.start();
+        s.start(t0);
       });
     }
     async function playEls(els){
@@ -1654,7 +1791,7 @@
         if (tts.opts && tts.opts.onChunk) tts.opts.onChunk(item.text);
         if (res && res.kind === 'buf') await playBuffer(res.buf);
         else if (res && res.kind === 'els') await playEls(res.els);
-        else await speakBrowserChunk(item.text);
+        else { if (tts.lastFail && (!ttsSupported || !availableVoices.length)) { toast('كل محركات الصوت فشلت (' + tts.lastFail + '). جرّب بعد شوية أو غيّر محرك الصوت من ⚙.'); tts.lastFail = ''; } await speakBrowserChunk(item.text); }
       } catch (e) { console.error(e); }
       if (gen !== tts.gen) return;
       tts.playing = false;
@@ -1916,7 +2053,7 @@
       return base;
     }
     function pronunciationBlock(){
-      return '\n\n## النطق\nانطق مصري سليم زي المصريين بالظبط: ج = "g" قاهرية، ق = همزة في الكلام العامي، ث = ت أو س حسب الكلمة، ذ = ز أو د، ظ = ز أو ض. أي كلام فصيح (قرآن، شعر، نص رسمي) انطقه بفصحى صحيحة وتشكيل سليم. احترم علامات الترقيم: وقفة صغيرة عند الفاصلة، وأطول عند النقطة، ونبرة سؤال في آخر الأسئلة.';
+      return '\n\n## النطق (لهجة القاهرة 100%)\n- لهجتك قاهرية بس: مش صعيدي ولا سعودي ولا شامي ولا سوداني ولا مغربي، ومش فصحى في الكلام العادي.\n- حرف ق في الكلام العامي بيتنطق همزة: اقعد = "أُعد"، قال = "آل"، قلب = "أَلب"، قدام = "أُدّام"، قهوة = "أَهوة"، قوي = "أَوي"، فوق = "فُوأ". ممنوع تنطقه "g" ولا "q" (دي صعيدي/خليجي).\n- ج بتتنطق g قاهرية، ث = ت أو س حسب الكلمة (تلاتة، تعبان، سابت)، ذ = ز أو د، ظ = ز أو ض.\n- الكلام الفصيح جوه الكلام (آيات، شعر، مصطلحات رسمية) انطقه فصحى سليمة بتشكيل صحيح.\n- ثبّت نفس الصوت ونفس الطبقة ونفس الشخصية طول المحادثة: التغيير بيكون في الإحساس والإيقاع بس، مش في نوع الصوت أو طبقته.\n- احترم علامات الترقيم: وقفة صغيرة عند الفاصلة، وأطول عند النقطة، ونبرة سؤال في آخر الأسئلة، وتعجب واضح في الجمل التعجبية.';
     }
     function voicePromptFull(){
       var t = VOICE_PROMPT + selfGenderNote() + '\n\n## الأداء الصوتي' + expressiveBlock(V2.expressive || 'high') + pronunciationBlock();
@@ -2164,16 +2301,17 @@
         inputAudioTranscription: {},
         outputAudioTranscription: {}
       };
-      if (o.level <= 1 && /2\.5|native-audio/.test(model) && (V2.expressive || 'high') !== 'natural') setup.generationConfig.enableAffectiveDialog = true;
-      if (o.level === 0) setup.generationConfig.thinkingConfig = /\d\.\d/.test(model) && !/2\.5/.test(model) ? { thinkingLevel:'minimal' } : { thinkingBudget:0 };
-      if (o.level <= 1) {
+      if (o.level === 0 && !/native-audio/.test(model)) setup.generationConfig.speechConfig.languageCode = 'ar-EG';
+      if (o.level <= 2 && /2\.5|native-audio/.test(model) && (V2.expressive || 'high') !== 'natural') setup.generationConfig.enableAffectiveDialog = true;
+      if (o.level <= 1) setup.generationConfig.thinkingConfig = /\d\.\d/.test(model) && !/2\.5/.test(model) ? { thinkingLevel:'minimal' } : { thinkingBudget:0 };
+      if (o.level <= 2) {
         setup.inputAudioTranscription = { languageCodes: ['ar-EG', 'en-US'], customVocabulary: ['M-G', 'إم جي', 'MG'] };
         setup.realtimeInputConfig = { automaticActivityDetection: { endOfSpeechSensitivity:'END_SENSITIVITY_LOW', silenceDurationMs: Math.max(450, (V2.endMs || 800) - 200), prefixPaddingMs:120 }, turnCoverage:'TURN_INCLUDES_ONLY_ACTIVITY' };
         setup.proactivity = { proactiveAudio: true };
         setup.contextWindowCompression = { slidingWindow: {} };
         setup.sessionResumption = o.handle ? { handle: o.handle } : {};
         setup.tools = liveTools(o.search);
-      } else if (o.level === 2) {
+      } else if (o.level === 3) {
         setup.realtimeInputConfig = { automaticActivityDetection: { endOfSpeechSensitivity:'END_SENSITIVITY_LOW', silenceDurationMs:700 } };
         setup.tools = liveTools(false);
       }
@@ -2224,9 +2362,9 @@
         for (var ki = 0; ki < keys.length; ki++) {
           var bid = models[i] + '|' + keys[ki].slice(-6);
           if (liveBlock[bid] > Date.now()) { quotaHit = true; continue; }
-          for (var level = 0; level < 4; level++) {
+          for (var level = 0; level < 5; level++) {
             if (!voiceMode.open) throw new Error('اتقفلت');
-            var withSearch = !!(V2.search && !live.noSearch && level <= 1);
+            var withSearch = !!(V2.search && !live.noSearch && level <= 2);
             tried++;
             try {
               var ws = await liveOpen(models[i], { level:level, search:withSearch, handle: V2.wakeMode ? null : live.handle, key:keys[ki] });
@@ -2237,7 +2375,7 @@
               return true;
             } catch (e) {
               lastErr = e;
-              if (withSearch && level === 1) live.noSearch = true;
+              if (withSearch && level === 2) live.noSearch = true;
               if (/quota|exceeded|exhausted|429|RESOURCE_EXHAUSTED/i.test(String((e && e.message) || ''))) {
                 liveBlock[bid] = Date.now() + 8 * 60000; quotaHit = true;   /* this model+key is out: try the next one, don't give up */
                 break;
@@ -2270,6 +2408,7 @@
     function liveResetPlayback(){
       live.sources.forEach(function(s){ try { s.onended = null; s.stop(); } catch(e) {} });
       live.sources = []; live.nextT = 0; live.speaking = false;
+      if (live.gain) { try { live.gain.gain.cancelScheduledValues(0); live.gain.gain.value = 1; } catch(e) {} }
     }
     function liveStopPlayback(){ liveResetPlayback(); }
 
@@ -2293,13 +2432,23 @@
       } catch(e) {}
     }
 
+    function liveGain(ctx){
+      if (!live.gain || live.gain.context !== ctx) { live.gain = ctx.createGain(); live.gain.connect(ctx.destination); }
+      return live.gain;
+    }
+    function liveFadeTail(){
+      var ctx = getAudioCtx(); if (!ctx || !live.gain) return;
+      var endT = live.nextT;
+      if (endT > ctx.currentTime + 0.01) { var g = live.gain.gain; g.setValueAtTime(1, Math.max(ctx.currentTime, endT - 0.04)); g.linearRampToValueAtTime(0.0001, endT); }
+    }
     function liveEnqueueAudio(b64, rate){
       if (live.drop) return;
       var ctx = getAudioCtx(); if (!ctx) return;
       var buf = pcmToBuffer(b64, rate || 24000);
-      var s = ctx.createBufferSource();
-      s.buffer = buf; s.connect(ctx.destination);
+      var s = ctx.createBufferSource(), gn = liveGain(ctx), first = !live.speaking;
+      s.buffer = buf; s.connect(gn);
       var t = Math.max(ctx.currentTime + 0.03, live.nextT);
+      if (first) { gn.gain.cancelScheduledValues(ctx.currentTime); gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(1, t + 0.012); }
       s.start(t);
       live.nextT = t + buf.duration;
       live.sources.push(s);
@@ -2307,7 +2456,7 @@
         var i = live.sources.indexOf(s); if (i !== -1) live.sources.splice(i, 1);
         if (!live.sources.length) livePlaybackEnded();
       };
-      if (!live.speaking) {
+      if (first) {
         live.speaking = true;
         clearTimeout(live.idleTimer); clearTimeout(live.replyTimer); live.awaitReply = false;
         if (voiceMode.open && voiceMode.live) {
@@ -2437,10 +2586,11 @@
         live.aiBuf += sc.outputTranscription.text;
         if (els.voiceTranscript) els.voiceTranscript.textContent = splitMemory(live.aiBuf).clean.trim().slice(-220);
       }
-      if (sc.generationComplete) live.drop = false;
+      if (sc.generationComplete) { live.drop = false; liveFadeTail(); }
       if (sc.turnComplete) {
         live.drop = false; live.turnDone = true;
         clearTimeout(live.replyTimer); live.awaitReply = false;
+        liveFadeTail();
         liveFlushTurn();
         if (!live.sources.length) { live.speaking = false; liveAfterModelTurn(); }
       }
