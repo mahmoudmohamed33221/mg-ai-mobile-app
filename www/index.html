@@ -674,9 +674,9 @@
       <label for="idleSecInput" style="margin-top:8px;">يرجع للانتظار بعد صمت</label>
       <select id="idleSecInput"><option value="8">٨ ثواني</option><option value="12">١٢ ثانية</option><option value="20">٢٠ ثانية</option><option value="30">٣٠ ثانية</option></select>
       <label for="endMsInput" style="margin-top:8px;">سرعة الرد بعد ما تسكت</label>
-      <select id="endMsInput"><option value="700">سريع (ممكن يقاطعك لو بتتمهل)</option><option value="900">متوازن</option><option value="1300">صبور (يستنى لو بتفكر)</option></select>
+      <select id="endMsInput"><option value="500">فوري (الأسرع — رد في ثانيتين)</option><option value="700">سريع</option><option value="1000">متوازن</option><option value="1400">صبور (يستنى لو بتفكر)</option></select>
       <label for="speedInput" style="margin-top:8px;">سرعة كلام M-G</label>
-      <select id="speedInput"><option value="1">عادي</option><option value="1.08">سريع طبيعي</option><option value="1.15">سريع</option><option value="1.3">أسرع</option><option value="1.45">سريع جدًا</option></select>
+      <select id="speedInput"><option value="1">عادي</option><option value="1.04">سريع طبيعي</option><option value="1.15">سريع</option><option value="1.3">أسرع</option><option value="1.45">سريع جدًا</option></select>
       <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="bargeInInput"><span>اسمح بمقاطعته بأي كلام وهو بيتكلم (مش مُوصى بيها). وهي مقفولة، مفيش حاجة بتقطعه غير كلمة «استنى» أو الضغط على الدايرة الحمرا</span></label>
       <div class="hint">اللايف بيشتغل بمفتاح Gemini نفسه وله حصة لوحده غير حصة الشات والقراءة. كلام المكالمة بيتسجّل في الشات.</div>
     </div>
@@ -706,6 +706,10 @@
       <input type="text" id="ttsModelInput" placeholder="gemini-3.8-flash-tts" autocomplete="off" spellcheck="false" dir="ltr">
       <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="ttsPlainInput"><span>اقرا النص زي ما هو من غير أي تعليمات أسلوب (فعّلها لو سمعته بيقول كلام إنجليزي قبل الرد)</span></label>
       <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="sameVoiceInput"><span>صوتي المختار بس: ممنوع أي صوت بديل أو روبوت. لو الحصة خلصت بيجرّب كل المفاتيح والموديلات، وبعدين بيستنى، ومبيتكلمش بصوت تاني أبدًا</span></label>
+      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="gFormInput"><span>الجيم المصرية g (جميل، اجيبلك). والكلمات الأجنبية بحرف چ (چيبة، چاكيت، ماكياچ) بتتنطق زي الـ j الفرنسية. بيحوّل الجيم لحرف «گ» قبل القراءة؛ لو سمعتها غلط اقفلها</span></label>
+      <label for="pronMapInput" style="margin-top:8px;">استثناءات النطق بتاعتك (سطر لكل كلمة)</label>
+      <textarea id="pronMapInput" rows="4" dir="rtl" spellcheck="false" placeholder="القاهرة   ← بتتنطق زي ما هي (من غير تغيير)&#10;چيبة=ژيبة   ← كلمة=نطقها"></textarea>
+      <div class="hint">اكتب الكلمة لوحدها لو عايزها تتنطق زي ما هي بالقاف والجيم. أو «كلمة=نطقها» لو عايز تحدد النطق بالظبط. بتتطبّق على أي كلمة بالظبط (والواو والفاء قبلها).</div>
       <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="tashkeelInput"><span>ضبط النطق المصري قبل القراءة: تشكيل + نطق القاف والجيم والثاء زي القاهرة (اقعد = أُعد). بيضيف حوالي ثانية</span></label>
       <button type="button" class="text-btn" id="voiceTestBtn" style="width:100%;padding:10px;margin-top:8px;">🔊 جرّب الصوت المثبّت</button>
       <div class="hint">كل جملة بتتقري بتتسجّل على تليفونك، فلو اتقرت تاني بتشتغل فورًا ومن غير ما تستهلك من الحصة.</div>
@@ -1231,7 +1235,7 @@
        speech->text (audio is sent to Gemini), and a continuous voice-activity loop so the
        call never "stops hearing you" after the first sentence. */
     var V2_KEY = 'mgai_voice_v2';
-    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:700, sttModel:'', vpStrict:'lenient', gender:'male', genderMig:false, speed:1.08, vpMig2:true, expressive:'high', tashkeel:true, ttsPlain:false, sameVoiceOnly:true };
+    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:500, sttModel:'', vpStrict:'lenient', gender:'male', genderMig:false, speed:1.04, vpMig2:true, expressive:'high', tashkeel:true, ttsPlain:false, sameVoiceOnly:true, gForm:true, pronMap:'' };
     var GEMINI_VOICE_GROUPS = [
       { title:'👨 رجال', gender:'male', voices:[['Charon','رزين ومعلوماتي'],['Orus','قوي وحازم'],['Alnilam','حازم'],['Schedar','متّزن'],['Algenib','خشن جهوري'],['Rasalgethi','معلوماتي'],['Sadaltager','واسع المعرفة'],['Iapetus','واضح'],['Algieba','ناعم'],['Enceladus','هامس بنَفَس']] },
       { title:'🧑 شباب', gender:'male', voices:[['Puck','مرِح ومتحمس'],['Fenrir','حماسي'],['Sadachbia','حيوي'],['Zubenelgenubi','عفوي'],['Umbriel','مريح وعفوي'],['Achird','ودود']] },
@@ -1261,6 +1265,7 @@
     if (!V2.vpMig2) { V2.vpStrict = (V2.vpStrict === 'strict') ? 'strict' : 'lenient'; V2.vpMig2 = true; }
     if (!V2.genderMig) { if (!V2.gender) V2.gender = 'male'; V2.genderMig = true; }
     if (!V2.speedMig3) { V2.speed = 1.08; V2.speedMig3 = true; }
+    if (!V2.speedMig4) { V2.speed = 1.04; V2.endMs = 500; V2.speedMig4 = true; }
     V2.speed = Math.min(1.5, Math.max(0.9, parseFloat(V2.speed) || 1.15));
     function saveV2(){ try { localStorage.setItem(V2_KEY, JSON.stringify(V2)); } catch(e) {} }
 
@@ -1319,7 +1324,7 @@
       /* one short style line + the text: long instructions risked being spoken out loud before the reply */
       if (V2.ttsPlain) return text;
       if (!/[\u0600-\u06FF]/.test(text)) return 'Say in a warm, natural, expressive voice at a brisk conversational pace, without long pauses: ' + text;
-      return 'Say in warm, natural Cairo Egyptian Arabic, hard "g" sound for the letter ج, brisk conversational pace, no long pauses: ' + text;
+      return 'Say in warm, natural Cairo Egyptian Arabic (the letter گ is a hard g as in "go", ژ is the French j as in "measure"), brisk conversational pace, no long pauses: ' + text;
     }
     /* smart diacritics (tashkeel): makes pronunciation exact; skipped during live conversations to keep them fast */
     function stripDiac(t){ return String(t || '').replace(/[\u064B-\u0652\u0670\u0640]/g, ''); }
@@ -1332,29 +1337,50 @@
       'اقول':'أُول','اقولك':'أُولَّك','اقولله':'أُولَّه','اقولهم':'أُولَّهُم',
       'قوي':'أَوِي','قوية':'أَوِيَّة','دلوقتي':'دِلْوَأْتِي','دلوقت':'دِلْوَأْت','بقى':'بَأَى','بقي':'بَأَى'
     };
-    var EG_KEEP_Q = { 'قرآن':1,'قران':1,'قرآني':1,'قراني':1,'قرآنية':1,'قرانية':1,'قرءان':1 };
+    /* كلمات القاف فيها ثابتة (أسماء وكلام رسمي) */
+    var EG_KEEP_Q = { 'قرآن':1,'قران':1,'قرآني':1,'قراني':1,'قرآنية':1,'قرانية':1,'قرءان':1,'قاهرة':1,'قاهره':1,'قدس':1,'قنا':1 };
+    /* كلمات أجنبية بتتنطق بالـ j الفرنسية (چ): بتتحوّل لـ ژ عشان القارئ ينطقها صح */
+    var EG_ZH = ['جيبة','جيبه','جيبات','جاكيت','جاكتة','جاكته','جيلاتي','ماكياج','مكياج','مساج','جراج','مونتاج','ديكوباج','كولاج','ريجيم'];
     var EG_TA = ['ثلاث','ثلث','ثمان','ثاني','ثانية','ثواني','ثانيا','ثالث','كثير','ثقيل','ثعبان','ثعلب','ثلج','ثلاجة','ثوم','ثمن','ثوب'];
     var EG_TA_EXACT = { 'ثور':1,'الثور':1 };
     var EG_DAL = ['ذهب','ذقن','ذراع','ذرة','ذنب','ذباب','ذيل','ذبح','ذاب','ذوب'];
     var EG_DAD = ['ظفر','ظلمة','ظلام'];
     var EG_Q_DAMMA = /^[وفبل]?(?:قلت|قلنا|قدام|قولت)/;
     var EG_Q_KASRA = /^[وفبل]?(?:قرش|قرد)/;
-    var EG_LETTERS = /[ء-غف-ْٰٱـ]+/g;
+    var EG_LETTERS = /[ء-غف-ْٰٱـچ]+/g;
+    var egUserKey = null, egUser = {};
+    function egLoadUser(){
+      var s = String((typeof V2 !== 'undefined' && V2.pronMap) || '');
+      if (s === egUserKey) return;
+      egUserKey = s; egUser = {};
+      s.split(/\n+/).forEach(function(l){
+        l = l.trim(); if (!l) return;
+        var i = l.indexOf('=');
+        if (i < 0) egUser[l.replace(/[ً-ْ]/g, '')] = null;
+        else egUser[l.slice(0, i).trim().replace(/[ً-ْ]/g, '')] = l.slice(i + 1).trim();
+      });
+    }
     function egHas(base, list){ for (var i = 0; i < list.length; i++) if (base.indexOf(list[i]) !== -1) return true; return false; }
     function egUnits(w){
-      var u = [], m, re = /([ء-غف-يٱ])([ً-ْٰـ]*)/g;
+      var u = [], m, re = /([ء-غف-يٱچ])([ً-ْٰـ]*)/g;
       while ((m = re.exec(w))) u.push({ c:m[1], m:m[2].replace(/ـ/g, '') });
       return u;
     }
     function egWord(w){
       var u = egUnits(w);
-      if (u.length < 2) return w;
+      if (u.length < 1) return w;
       var base = u.map(function(x){ return x.c; }).join('');
-      if (EG_WORDS[base]) return EG_WORDS[base];
+      if (Object.prototype.hasOwnProperty.call(egUser, base)) return egUser[base] === null ? w : egUser[base];
       var pf = base.charAt(0);
+      if ((pf === 'و' || pf === 'ف') && Object.prototype.hasOwnProperty.call(egUser, base.slice(1))) return egUser[base.slice(1)] === null ? w : pf + egUser[base.slice(1)];
+      if (u.length < 2) return w;
+      if (EG_WORDS[base]) return EG_WORDS[base];
       if ((pf === 'و' || pf === 'ف') && EG_WORDS[base.slice(1)]) return pf + EG_WORDS[base.slice(1)];
-      if (!/[قثذظ]/.test(base)) return w;
-      var qOk = !EG_KEEP_Q[base.replace(/^ال/, '')];
+      if (!/[قثذظجچ]/.test(base)) return w;
+      var core = base.replace(/^[وفبلك]{0,2}(?:ال)?/, '');
+      var qOk = !(EG_KEEP_Q[core] || EG_KEEP_Q[base]);
+      var zh = egHas(base, EG_ZH);
+      var gForm = !(typeof V2 !== 'undefined' && V2.gForm === false);
       var tr = { 'ث':'س', 'ذ':'ز', 'ظ':'ز' };
       if (EG_TA_EXACT[base] || egHas(base, EG_TA)) tr['ث'] = 'ت';
       if (egHas(base, EG_DAL)) tr['ذ'] = 'د';
@@ -1363,6 +1389,8 @@
       for (i = 0; i < u.length; i++) {
         c = u[i].c; m = u[i].m; nx = u[i + 1]; pv = u[i - 1];
         if (c === 'ث' || c === 'ذ' || c === 'ظ') { out += tr[c] + m; continue; }
+        if (c === 'چ') { out += 'ژ' + m; continue; }
+        if (c === 'ج') { out += (zh ? 'ژ' : (gForm ? 'گ' : 'ج')) + m; continue; }   /* ج = g قاهرية، ژ للكلمات الأجنبية */
         if (c !== 'ق' || !qOk) { out += c + m; continue; }
         if (i === 1 && /[اأإآ]/.test(pv.c)) {   /* اقعد / اقول / اقتصاد: القاف بتدوب في الهمزة اللي قبلها */
           out = out.slice(0, out.length - (pv.c + pv.m).length);
@@ -1387,6 +1415,7 @@
     function egyptianize(text){
       text = String(text || '');
       if (/[ۖ-ۭ﴾﴿﷽]/.test(text)) return text;   /* قرآن: سيبه زي ما هو */
+      egLoadUser();
       return text.replace(EG_LETTERS, egWord);
     }
 
@@ -2150,10 +2179,10 @@
       return base;
     }
     function pronunciationBlock(){
-      return '\n\n## الكتابة للنطق\n- اكتب بالعامية المصرية بإملاء عادي طبيعي (قال، قلب، اقعد، بقولك، ثلاثة). ممنوع تكتب النطق صوتيًا أو تشكّل الكلمات أو تبدّل الحروف: التطبيق بيظبط النطق القاهري لوحده.\n- لهجتك قاهرية بس: مش صعيدي ولا خليجي ولا شامي، ومش فصحى في الكلام العادي.\n- ثبّت نفس الشخصية طول المحادثة.\n- كمّل الكلام متصل بسرعة طبيعية.';
+      return '\n\n## الكتابة للنطق\n- اكتب بالعامية المصرية بإملاء عادي طبيعي (قال، قلب، اقعد، بقولك، ثلاثة). ممنوع تكتب النطق صوتيًا أو تشكّل الكلمات أو تبدّل الحروف: التطبيق بيظبط النطق القاهري لوحده.\n- لهجتك قاهرية بس: مش صعيدي ولا خليجي ولا شامي، ومش فصحى في الكلام العادي.\n- الجيم: اكتب ج عادية لأي كلمة بتتنطق g قاهرية (جميل، اجيبلك، جملة، جامعة). واكتب چ بس للكلمات الأجنبية اللي بتتنطق زي الـ j الفرنسية (چيبة، چاكيت، ماكياچ، جراچ، مساچ).\n- القاهرة، والقرآن، والأسماء الرسمية بتتكتب عادي وبتتنطق بالقاف.\n- ثبّت نفس الشخصية طول المحادثة.\n- كمّل الكلام متصل بسرعة طبيعية.';
     }
     function liveAccentBlock(){
-      return '- نطقك قاهري صريح: حرف ق في الكلام العامي بتنطقه همزة (قال = "آل"، قلب = "ألب"، اقعد = "أُعد"، بقولك = "بأُولك" بواو ممدودة، قوي = "أوي")، وحرف ج بتنطقه g زي "جدع"، وث = ت أو س (تلاتة، كتير، سابت)، وذ = ز أو د، وظ = ز أو ض. الفصحى (آيات وشعر) بس هي اللي ق فيها تتنطق عادي. ممنوع تبلع حروف الكلمة أو تنطقها ناقصة.\n';
+      return '- نطقك قاهري صريح: حرف ق في الكلام العامي بتنطقه همزة (قال = "آل"، قلب = "ألب"، اقعد = "أُعد"، بقولك = "بأُولك" بواو ممدودة، قوي = "أوي")، وحرف ج بتنطقه g مصرية دايمًا (جميل، اجيبلك، جملة، جامعة) ومتنطقهوش dj، وحرف چ بس في الكلمات الأجنبية بتنطقه زي الـ j الفرنسية (چيبة، چاكيت، ماكياچ، جراچ)، والقاهرة بتتنطق بالقاف، وث = ت أو س (تلاتة، كتير، سابت)، وذ = ز أو د، وظ = ز أو ض. الفصحى (آيات وشعر) بس هي اللي ق فيها تتنطق عادي. ممنوع تبلع حروف الكلمة أو تنطقها ناقصة.\n';
     }
     function voicePromptFull(){
       var t = VOICE_PROMPT + selfGenderNote() + '\n\n## الأداء الصوتي' + expressiveBlock(V2.expressive || 'high') + pronunciationBlock();
@@ -2355,6 +2384,8 @@
 - ركّز في اللي بيقوله بالظبط. لو جزء مش واضح اختار أقرب معنى منطقي من سياق الكلام، ولو لسه مش متأكد اسأل سؤال قصير جدًا: "تقصد كذا؟".
 - لو سمعت ضوضاء أو صدى أو كلام مش موجّه ليك أو كلام مقطوع من غير معنى، اسكت ومتردش.
 - متنفّذش أي حاجة غير اللي اتطلبت.
+- السرعة: ابدأ الرد في أقل من ثانيتين. ابدأ بالإجابة نفسها مباشرة، جملة أو اتنين، وكمّل لو المستخدم عايز تفاصيل.
+- الدقة: اربط كلامه بسياق المحادثة وبشغله (برمجة، تطبيقات). الكلمات الإنجليزية التقنية (function، API، React، Firebase…) مصطلحات مش أسماء. جاوب على اللي سأل عليه بالظبط وبكلام منطقي ومحدد، ومتخترعش معلومة: لو معرفتش قول معرفش.
 
 قواعد الكلام:
 - ردّ بنفس لغة ولهجة المستخدم (مصري بمصري، إنجليزي بإنجليزي، وخلطة بخلطة). المصطلحات التقنية الإنجليزية انطقها سليمة.
@@ -2363,7 +2394,7 @@
 
 الأوامر (استخدم الأدوات المتاحة):
 - منبه: set_alarm بالساعة والدقيقة بنظام 24 ساعة، واحسبها من الوقت الحالي اللي اتقالك. تايمر: set_timer بالثواني. بعد التنفيذ أكّد بجملة واحدة قصيرة.
-- الإنترنت: عندك وصول كامل (web_search بحث جوجل، youtube_search يوتيوب، read_webpage قراءة أي رابط). استخدمها بجرأة لأي حاجة مش متأكد منها (مسلسل، فيلم، شخص، خبر، سعر…) أو لما يقولك "دوّر"، وقول له بإيجاز "ثانية أدوّر" قبل ما تبحث. ممنوع تقول إن معندكش صلاحية.
+- الإنترنت: عندك وصول (web_search بحث جوجل، youtube_search يوتيوب، read_webpage قراءة رابط). ممنوع تبحث لأي سؤال تعرف إجابته: جاوب فورًا. ابحث بس لو طلب منك "دوّر" أو سأل عن خبر أو سعر أو حاجة حالية أو شخص/عمل مش متأكد منه، وقوله "ثانية أدوّر" الأول.
 - لو قال "سلام" أو "خلاص كده" أو "شكرًا" وعايز ينهي المحادثة: قول وداع قصير واستخدم end_conversation.`;
 
     function buildLiveSystem(){
@@ -2412,7 +2443,7 @@
       if (o.level <= 1) setup.generationConfig.thinkingConfig = /\d\.\d/.test(model) && !/2\.5/.test(model) ? { thinkingLevel:'minimal' } : { thinkingBudget:0 };
       if (o.level <= 2) {
         /* (اتشال languageCodes/customVocabulary: بيوقّعوا الاتصال على مستوى أضعف) */
-        setup.realtimeInputConfig = { automaticActivityDetection: { startOfSpeechSensitivity:'START_SENSITIVITY_HIGH', endOfSpeechSensitivity:'END_SENSITIVITY_LOW', prefixPaddingMs:200, silenceDurationMs:500 } };
+        setup.realtimeInputConfig = { automaticActivityDetection: { startOfSpeechSensitivity:'START_SENSITIVITY_HIGH', endOfSpeechSensitivity:'END_SENSITIVITY_HIGH', prefixPaddingMs:200, silenceDurationMs:Math.max(400, V2.endMs || 500) } };
         /* (اتشال proactiveAudio: كان بيخليه يرد على أي صوت حواليك) */
         setup.contextWindowCompression = { slidingWindow: {} };
         setup.sessionResumption = o.handle ? { handle: o.handle } : {};
@@ -2436,7 +2467,7 @@
         function fail(e){ if (done) return; done = true; clearTimeout(timer); try { ws.close(); } catch(_) {} reject(e); }
         try { ws = new WebSocket('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.' + (o.level <= 2 ? 'v1alpha' : 'v1beta') + '.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(o.key || state.apiKey)); }
         catch (e) { reject(e); return; }
-        timer = setTimeout(function(){ fail(new Error('الاتصال اتأخر (timeout)')); }, 12000);
+        timer = setTimeout(function(){ fail(new Error('الاتصال اتأخر (timeout)')); }, 8000);
         var q = Promise.resolve();
         ws.onopen = function(){ ws.send(JSON.stringify({ setup: buildLiveSetup(model, o) })); };
         ws.onmessage = function(ev){
@@ -2468,14 +2499,15 @@
         for (var ki = 0; ki < keys.length; ki++) {
           var bid = models[i] + '|' + keys[ki].slice(-6);
           if (liveBlock[bid] > Date.now()) { quotaHit = true; continue; }
-          for (var level = 0; level < 5; level++) {
+          var startLevel = (models[i] === V2.liveModelOk && V2.liveLevelOk) ? V2.liveLevelOk : 0;
+          for (var level = startLevel; level < 5; level++) {
             if (!voiceMode.open) throw new Error('اتقفلت');
             var withSearch = !!(V2.search && !live.noSearch && level <= 2);
             tried++;
             try {
               var ws = await liveOpen(models[i], { level:level, search:withSearch, handle: V2.wakeMode ? null : live.handle, key:keys[ki] });
               live.ws = ws; live.model = models[i]; live.ready = true; live.retries = 0; live.level = level; live.bid = bid;
-              V2.liveModelOk = models[i]; saveV2();
+              V2.liveModelOk = models[i]; V2.liveLevelOk = level; saveV2();
               live.sendBuf = []; live.sendLen = 0; live.talk = false; live.pre = [];
               liveResetPlayback();
               return true;
@@ -2707,8 +2739,22 @@
       var lv = Math.min(1, rms * 9);
       if (Math.abs(lv - (voiceMode._lv || 0)) > 0.05 && els.voiceOrb) { voiceMode._lv = lv; els.voiceOrb.style.setProperty('--lvl', lv.toFixed(2)); }
     }
+    var dsState = { buf: new Float32Array(0) };
+    function downsampleStream(f32, srcRate){
+      if (srcRate === 16000) return f32;
+      var ratio = srcRate / 16000, b = new Float32Array(dsState.buf.length + f32.length), i, j;
+      b.set(dsState.buf); b.set(f32, dsState.buf.length);
+      var n = Math.floor(b.length / ratio), out = new Float32Array(n);
+      for (i = 0; i < n; i++) {
+        var s = Math.floor(i * ratio), e = Math.floor((i + 1) * ratio), sum = 0, c = 0;
+        for (j = s; j < e; j++) { sum += b[j]; c++; }
+        out[i] = c ? sum / c : 0;
+      }
+      dsState.buf = b.slice(Math.min(b.length, Math.floor(n * ratio)));
+      return out;
+    }
     function liveSendFrame(f, sr){
-      var d = downsampleTo16k(f, sr), pcm = new Int16Array(d.length);
+      var d = downsampleStream(f, sr), pcm = new Int16Array(d.length);
       for (var i = 0; i < d.length; i++) { var x = Math.max(-1, Math.min(1, d[i])); pcm[i] = x < 0 ? x * 0x8000 : x * 0x7FFF; }
       live.sendBuf.push(pcm); live.sendLen += pcm.length;
       if (live.sendLen >= 1600) liveFlushSend();
@@ -2737,6 +2783,7 @@
       }, 12000);
     }
     function liveStartTalk(frames, sr){
+      dsState.buf = new Float32Array(0);
       live.talk = true; live.lastVoice = Date.now(); live.talkStart = Date.now(); live.vsince = 0; live.failStreak = 0; live.cand = null;
       live.recent = frames.slice(-40);
       frames.forEach(function(f){ liveSendFrame(f, sr); });
@@ -2798,7 +2845,7 @@
         live.failStreak = vpVerify(live.recent.slice(-36), sr, { slack:1.3 }).ok ? 0 : live.failStreak + 1;
         if (live.failStreak >= 2) { live.failStreak = 0; live.talk = false; liveFlushSend(); liveUserEnd(); return; }   /* someone else took over */
       }
-      var endMs = (V2.endMs || 900) + ((Date.now() - live.talkStart) < 1500 ? 250 : 0);
+      var endMs = (V2.endMs || 500) + ((Date.now() - live.talkStart) < 1200 ? 120 : 0);
       if (Date.now() - live.lastVoice >= endMs) { live.talk = false; liveFlushSend(); liveUserEnd(); }
     }
 
@@ -6005,9 +6052,11 @@
       g('expressiveInput').value = V2.expressive || 'high';
       g('tashkeelInput').checked = V2.tashkeel !== false;
       g('sameVoiceInput').checked = V2.sameVoiceOnly !== false;
+      g('gFormInput').checked = V2.gForm !== false;
+      g('pronMapInput').value = V2.pronMap || '';
       g('ttsPlainInput').checked = !!V2.ttsPlain;
       g('idleSecInput').value = String(V2.idleSec || 12);
-      g('endMsInput').value = String(V2.endMs || 700);
+      g('endMsInput').value = String(V2.endMs || 500);
       g('speedInput').value = String(V2.speed || 1.15);
       g('ttsModelInput').value = V2.ttsModel;
       g('bargeInInput').checked = !!V2.bargeIn;
@@ -6024,9 +6073,11 @@
         V2.expressive = g('expressiveInput').value;
         V2.tashkeel = g('tashkeelInput').checked;
         V2.sameVoiceOnly = g('sameVoiceInput').checked;
+        V2.gForm = g('gFormInput').checked;
+        V2.pronMap = g('pronMapInput').value;
         V2.ttsPlain = g('ttsPlainInput').checked;
         V2.idleSec = parseInt(g('idleSecInput').value, 10) || 12;
-        V2.endMs = parseInt(g('endMsInput').value, 10) || 700;
+        V2.endMs = parseInt(g('endMsInput').value, 10) || 500;
         V2.speed = parseFloat(g('speedInput').value) || 1.15;
         V2.ttsModel = g('ttsModelInput').value.trim() || 'gemini-3.8-flash-tts';
         V2.bargeIn = g('bargeInInput').checked;
@@ -6038,7 +6089,7 @@
         ttsBlock = {};
         saveV2();
       }
-      ['ttsEngineInput','liveModeInput','liveModelInput','wakeModeInput','expressiveInput','tashkeelInput','sameVoiceInput','ttsPlainInput','idleSecInput','endMsInput','speedInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','vpStrictInput','genderInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
+      ['ttsEngineInput','liveModeInput','liveModelInput','wakeModeInput','expressiveInput','tashkeelInput','sameVoiceInput','gFormInput','pronMapInput','ttsPlainInput','idleSecInput','endMsInput','speedInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','vpStrictInput','genderInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
       renderGeminiVoiceList();
     })();
 
