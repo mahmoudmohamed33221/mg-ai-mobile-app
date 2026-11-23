@@ -659,6 +659,8 @@
       <label for="extraKeysInput">مفاتيح Gemini إضافية (اختياري)</label>
       <textarea id="extraKeysInput" rows="3" dir="ltr" spellcheck="false" placeholder="مفتاح في كل سطر"></textarea>
       <div class="hint">لو حصة المفتاح الأساسي خلصت بيجرّب المفاتيح دي، وبعدها موديلات أخف، أوتوماتيك. كل مفتاح من حساب Google مختلف ليه حصة لوحده.</div>
+      <button type="button" class="text-btn" id="keysTestBtn" style="width:100%;padding:10px;margin-top:8px;">🔑 افحص المفاتيح (شغال ولا الحصة خلصت)</button>
+      <div class="hint" id="keysTestResult" style="white-space:pre-line;"></div>
     </div>
 
     <div class="field">
@@ -703,6 +705,7 @@
       <label for="ttsModelInput" style="margin-top:8px;">موديل Gemini للقراءة</label>
       <input type="text" id="ttsModelInput" placeholder="gemini-3.8-flash-tts" autocomplete="off" spellcheck="false" dir="ltr">
       <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="ttsPlainInput"><span>اقرا النص زي ما هو من غير أي تعليمات أسلوب (فعّلها لو سمعته بيقول كلام إنجليزي قبل الرد)</span></label>
+      <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="sameVoiceInput"><span>صوتي المختار بس: ممنوع أي صوت بديل أو روبوت. لو الحصة خلصت بيجرّب كل المفاتيح والموديلات، وبعدين بيستنى، ومبيتكلمش بصوت تاني أبدًا</span></label>
       <label class="check-row" style="margin-top:8px;"><input type="checkbox" id="tashkeelInput"><span>ضبط النطق المصري قبل القراءة: تشكيل + نطق القاف والجيم والثاء زي القاهرة (اقعد = أُعد). بيضيف حوالي ثانية</span></label>
       <button type="button" class="text-btn" id="voiceTestBtn" style="width:100%;padding:10px;margin-top:8px;">🔊 جرّب الصوت المثبّت</button>
       <div class="hint">كل جملة بتتقري بتتسجّل على تليفونك، فلو اتقرت تاني بتشتغل فورًا ومن غير ما تستهلك من الحصة.</div>
@@ -1228,7 +1231,7 @@
        speech->text (audio is sent to Gemini), and a continuous voice-activity loop so the
        call never "stops hearing you" after the first sentence. */
     var V2_KEY = 'mgai_voice_v2';
-    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:700, sttModel:'', vpStrict:'lenient', gender:'male', genderMig:false, speed:1.15, vpMig2:true, expressive:'high', tashkeel:true, ttsPlain:false };
+    var V2 = { geminiTts:true, ttsModel:'gemini-2.5-flash-preview-tts', voice:'Kore', bargeIn:false, thinking:'high', search:true, extraKeys:'', ttsEngine:'auto', liveMode:true, liveModel:'', liveModelOk:'', wakeMode:true, idleSec:12, cmdIdleSec:10, endMs:700, sttModel:'', vpStrict:'lenient', gender:'male', genderMig:false, speed:1.15, vpMig2:true, expressive:'high', tashkeel:true, ttsPlain:false, sameVoiceOnly:true };
     var GEMINI_VOICE_GROUPS = [
       { title:'👨 رجال', gender:'male', voices:[['Charon','رزين ومعلوماتي'],['Orus','قوي وحازم'],['Alnilam','حازم'],['Schedar','متّزن'],['Algenib','خشن جهوري'],['Rasalgethi','معلوماتي'],['Sadaltager','واسع المعرفة'],['Iapetus','واضح'],['Algieba','ناعم'],['Enceladus','هامس بنَفَس']] },
       { title:'🧑 شباب', gender:'male', voices:[['Puck','مرِح ومتحمس'],['Fenrir','حماسي'],['Sadachbia','حيوي'],['Zubenelgenubi','عفوي'],['Umbriel','مريح وعفوي'],['Achird','ودود']] },
@@ -1453,7 +1456,7 @@
     }
     function friendlyTtsError(err){
       if (err && err.status === 429) {
-        return 'حصة الصوت المجانية خلصت دلوقتي' + (err.waitSec ? ' (جرّب بعد ' + err.waitSec + ' ثانية)' : (err.daily ? ' (لحد بكرة)' : '')) + '. الأصوات والجمل اللي سمعتها قبل كده بتشتغل من غير حصة.';
+        return 'حصة الصوت المجانية خلصت دلوقتي' + (err.waitSec ? ' (جرّب بعد ' + (err.waitSec > 120 ? Math.round(err.waitSec / 60) + ' دقيقة' : err.waitSec + ' ثانية') + ')' : (err.daily ? ' (لحد بكرة)' : '')) + '. الجمل اللي سمعتها قبل كده بتشتغل من غير حصة. عشان تكمل بنفس الصوت: ضيف مفتاح تاني في «مفاتيح إضافية»، أو فعّل Billing على المفتاح (الحصة بتكبر جدًا).';
       }
       return errShort(err);
     }
@@ -1677,29 +1680,49 @@
       throw lastErr || new Error('اللايف مش متاح للقراءة');
     }
 
+    function sleepAbortable(ms, signal){
+      return new Promise(function(res, rej){
+        var t = setTimeout(res, ms);
+        if (signal) signal.addEventListener('abort', function(){ clearTimeout(t); var e = new Error('aborted'); e.name = 'AbortError'; rej(e); });
+      });
+    }
     async function ttsProvide(text, signal, voice){
       var eng = (tts.opts && tts.opts.engine) || V2.ttsEngine || 'auto';
       if (eng === 'device') return null;
+      voice = voice || V2.voice;
       var notes = [], orig = text, family = (eng === 'auto' || eng === 'gemini'), i;
-      if (family && V2.tashkeel !== false && /[\u0600-\u06FF]/.test(text) && text.length <= 600 && Date.now() - ttsQuotaFail > 300000) {
-        try { text = await diacritize(text, voiceMode.open ? 3500 : 7000); } catch(e) { /* read it as is */ }
-      }
       if (family) {
-        try { return { kind:'buf', buf: await geminiTtsAudio(text, signal, voice) }; }
-        catch (e) { if (e && e.name === 'AbortError') throw e; notes.push(e); if (e && e.status === 429) ttsQuotaFail = Date.now(); }
-        var hit = await ttsCacheGet(ttsCacheKey(voice || V2.voice, '', text));
-        if (hit && hit.b64) return { kind:'buf', buf: pcmToBuffer(hit.b64, hit.rate || 24000, true) };
-        if (!engBlocked('livespeak')) {
-          try { var lb = await liveSpeak(text, voice || V2.voice); if (Date.now() - lastFallbackNote > 300000) { lastFallbackNote = Date.now(); toast('حصة صوت القراءة خلصت — بقرا بنفس الصوت من اللايف.'); } return { kind:'buf', buf: lb }; }
-          catch (e2) { if (e2 && e2.name === 'AbortError') throw e2; engFail('livespeak', 150000); notes.push(e2); }
+        if (V2.tashkeel !== false && /[؀-ۿ]/.test(text) && text.length <= 600 && Date.now() - ttsQuotaFail > 300000) {
+          try { text = await diacritize(text, voiceMode.open ? 3500 : 7000); } catch(e) { /* read it as is */ }
         }
-        if (eng === 'gemini') throw notes[0];
+        for (var round = 0; round < 4; round++) {
+          var minWait = Infinity;
+          try { return { kind:'buf', buf: await geminiTtsAudio(text, signal, voice) }; }
+          catch (e) {
+            if (e && e.name === 'AbortError') throw e;
+            notes.push(e);
+            if (e && e.status === 429) { ttsQuotaFail = Date.now(); if (e.waitSec) minWait = e.waitSec; }
+          }
+          var hit = await ttsCacheGet(ttsCacheKey(voice, '', text));
+          if (hit && hit.b64) return { kind:'buf', buf: pcmToBuffer(hit.b64, hit.rate || 24000, true) };
+          if (!engBlocked('livespeak')) {   /* the SAME voice through the Live API (separate quota), across every key and model */
+            try { return { kind:'buf', buf: await liveSpeak(text, voice) }; }
+            catch (e2) { if (e2 && e2.name === 'AbortError') throw e2; engFail('livespeak', 45000); notes.push(e2); }
+          }
+          if (minWait <= 75 && round < 3) { await sleepAbortable(minWait * 1000 + 1500, signal); continue; }   /* per-minute limit: wait for it instead of changing the voice */
+          break;
+        }
+        if (eng === 'gemini' || V2.sameVoiceOnly !== false) {
+          tts.lastFail = '';
+          ttsReportError(notes[0] || new Error('الصوت مش متاح دلوقتي'));
+          return { kind:'skip' };   /* never speak with a different voice */
+        }
       }
       var chain = [['pollinations', pollinationsAudio], ['gtranslate', googleTranslateAudio], ['polly', pollyAudio]];
       for (i = 0; i < chain.length; i++) {
         if (engBlocked(chain[i][0])) continue;
         try {
-          var b = await chain[i][1](orig, voice || V2.voice);
+          var b = await chain[i][1](orig, voice);
           if (notes.length && Date.now() - lastFallbackNote > 300000) { lastFallbackNote = Date.now(); toast('الحصة خلصت — بقرا بصوت بديل مجاني (مش نفس الصوت المختار).'); }
           return { kind:'buf', buf:b };
         } catch (e3) { if (e3 && e3.name === 'AbortError') throw e3; engFail(chain[i][0], 180000); notes.push(e3); }
@@ -1797,6 +1820,7 @@
         if (tts.opts && tts.opts.onChunk) tts.opts.onChunk(item.text);
         if (res && res.kind === 'buf') await playBuffer(res.buf);
         else if (res && res.kind === 'els') await playEls(res.els);
+        else if (res && res.kind === 'skip') { /* نفس الصوت بس: مفيش صوت بديل */ }
         else { if (tts.lastFail && (!ttsSupported || !availableVoices.length)) { toast('كل محركات الصوت فشلت (' + tts.lastFail + '). جرّب بعد شوية أو غيّر محرك الصوت من ⚙.'); tts.lastFail = ''; } await speakBrowserChunk(item.text); }
       } catch (e) { console.error(e); }
       if (gen !== tts.gen) return;
@@ -2177,7 +2201,7 @@
         },
         onError: function(err){
           if (turn !== voiceMode.turn) return;
-          toast(friendlyTtsError(err) + ' — كمّلت بصوت بديل.');
+          toast(friendlyTtsError(err));
         }
       });
       var attempts = 0;
@@ -5742,6 +5766,29 @@
       }
     }
 
+    async function testKeys(){
+      var out = $('keysTestResult');
+      var keys = [els.apiKeyInput.value.trim()].concat(String($('extraKeysInput').value || '').split(/[\s,;]+/)).filter(function(k, i, a){ return k.length > 20 && a.indexOf(k) === i; });
+      if (!keys.length) { out.textContent = 'ضيف مفتاح الأول.'; return; }
+      out.textContent = 'بفحص ' + keys.length + ' مفتاح…';
+      var lines = [], okCount = 0;
+      for (var i = 0; i < keys.length; i++) {
+        var tag = 'مفتاح ' + (i + 1) + ' (…' + keys[i].slice(-4) + '): ';
+        try {
+          var r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(state.model || 'gemini-3.5-flash-lite') + ':generateContent', {
+            method:'POST', headers:{ 'Content-Type':'application/json', 'x-goog-api-key': keys[i] },
+            body: JSON.stringify({ contents:[{ parts:[{ text:'hi' }] }], generationConfig:{ maxOutputTokens:8 } })
+          });
+          if (r.ok) { okCount++; lines.push('✓ ' + tag + 'شغال'); }
+          else {
+            var j = null; try { j = await r.json(); } catch(e) {}
+            lines.push((r.status === 429 ? '⚠ ' : '✗ ') + tag + (r.status === 429 ? 'الحصة خلصت دلوقتي' : 'HTTP ' + r.status + ((j && j.error && j.error.message) ? ' — ' + String(j.error.message).slice(0, 80) : '')));
+          }
+        } catch (e) { lines.push('✗ ' + tag + errShort(e)); }
+      }
+      out.textContent = lines.join('\n') + '\n' + okCount + ' من ' + keys.length + ' شغالين.';
+    }
+
     function loadCurrentBuild(){
       fetch('version.json?t=' + Date.now()).then(function(r){ return r.json(); }).then(function(j){
         state.currentBuild = parseInt(j.build, 10) || 0;
@@ -5758,6 +5805,7 @@
       this.textContent = isPwd ? 'إخفاء' : 'إظهار';
     });
     $('ghTestBtn').addEventListener('click', testGithub);
+    $('keysTestBtn').addEventListener('click', testKeys);
     $('checkUpdateBtn').addEventListener('click', function(){
       readGithubInputs();
       persistSettings();
@@ -5885,6 +5933,7 @@
       g('wakeModeInput').checked = V2.wakeMode !== false;
       g('expressiveInput').value = V2.expressive || 'high';
       g('tashkeelInput').checked = V2.tashkeel !== false;
+      g('sameVoiceInput').checked = V2.sameVoiceOnly !== false;
       g('ttsPlainInput').checked = !!V2.ttsPlain;
       g('idleSecInput').value = String(V2.idleSec || 12);
       g('endMsInput').value = String(V2.endMs || 700);
@@ -5903,6 +5952,7 @@
         V2.wakeMode = g('wakeModeInput').checked;
         V2.expressive = g('expressiveInput').value;
         V2.tashkeel = g('tashkeelInput').checked;
+        V2.sameVoiceOnly = g('sameVoiceInput').checked;
         V2.ttsPlain = g('ttsPlainInput').checked;
         V2.idleSec = parseInt(g('idleSecInput').value, 10) || 12;
         V2.endMs = parseInt(g('endMsInput').value, 10) || 700;
@@ -5917,7 +5967,7 @@
         ttsBlock = {};
         saveV2();
       }
-      ['ttsEngineInput','liveModeInput','liveModelInput','wakeModeInput','expressiveInput','tashkeelInput','ttsPlainInput','idleSecInput','endMsInput','speedInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','vpStrictInput','genderInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
+      ['ttsEngineInput','liveModeInput','liveModelInput','wakeModeInput','expressiveInput','tashkeelInput','sameVoiceInput','ttsPlainInput','idleSecInput','endMsInput','speedInput','ttsModelInput','bargeInInput','thinkingInput','searchInput','vpStrictInput','genderInput','extraKeysInput'].forEach(function(id){ g(id).addEventListener('change', syncV2); });
       renderGeminiVoiceList();
     })();
 
